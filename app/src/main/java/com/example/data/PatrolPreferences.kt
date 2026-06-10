@@ -2,62 +2,65 @@ package com.example.data
 
 import android.content.Context
 import android.content.SharedPreferences
+import org.json.JSONArray
 
 class PatrolPreferences(context: Context) {
     private val prefs: SharedPreferences = context.getSharedPreferences("patrol_prefs", Context.MODE_PRIVATE)
 
     companion object {
-        private const val KEY_OFF_DUTY = "off_duty"
+        private const val KEY_PATROL_INTERVAL = "patrol_interval"
+        private const val KEY_START_HOUR = "start_hour"
+        private const val KEY_END_HOUR = "end_hour"
         private const val KEY_EMERGENCY_NUMBER = "emergency_number"
-        private const val KEY_PATROL_POINTS = "patrol_points"
-        private const val KEY_DUTY_START_TIME = "duty_start_time"
+        private const val KEY_ON_DUTY = "on_duty"
+        private const val KEY_CUSTOM_POINTS = "custom_check_points"
+        private const val KEY_ALARM_VOLUME = "alarm_volume"
     }
 
-    var offDuty: Boolean
-        get() = prefs.getBoolean(KEY_OFF_DUTY, true)
-        set(value) = prefs.edit().putBoolean(KEY_OFF_DUTY, value).apply()
+    var patrolInterval: Int
+        get() = prefs.getInt(KEY_PATROL_INTERVAL, 15)
+        set(value) = prefs.edit().putInt(KEY_PATROL_INTERVAL, value).apply()
+
+    var startHour: Int
+        get() = prefs.getInt(KEY_START_HOUR, 20)
+        set(value) = prefs.edit().putInt(KEY_START_HOUR, value).apply()
+
+    var endHour: Int
+        get() = prefs.getInt(KEY_END_HOUR, 6)
+        set(value) = prefs.edit().putInt(KEY_END_HOUR, value).apply()
 
     var emergencyNumber: String
-        get() = prefs.getString(KEY_EMERGENCY_NUMBER, "") ?: ""
+        get() = prefs.getString(KEY_EMERGENCY_NUMBER, "0773554975") ?: "0773554975"
         set(value) = prefs.edit().putString(KEY_EMERGENCY_NUMBER, value).apply()
 
-    var patrolPoints: List<Int>
-        get() {
-            val raw = prefs.getString(KEY_PATROL_POINTS, "1,2,3,4,5") ?: "1,2,3,4,5"
-            if (raw.isBlank()) return emptyList()
-            return raw.split(",").mapNotNull { it.toIntOrNull() }
-        }
-        set(value) {
-            val raw = value.joinToString(",")
-            prefs.edit().putString(KEY_PATROL_POINTS, raw).apply()
-        }
+    var isOnDuty: Boolean
+        get() = prefs.getBoolean(KEY_ON_DUTY, false)
+        set(value) = prefs.edit().putBoolean(KEY_ON_DUTY, value).apply()
 
-    var customPointNames: Map<Int, String>
-        get() {
-            val raw = prefs.getString("custom_point_names", "") ?: ""
-            if (raw.isBlank()) return emptyMap()
-            return raw.split(",").mapNotNull {
-                val parts = it.split(":")
-                if (parts.size == 2) {
-                    val key = parts[0].toIntOrNull()
-                    if (key != null) {
-                        // Decode colon escape if any
-                        val decodedValue = parts[1].replace("%3A", ":").replace("%2C", ",")
-                        key to decodedValue
-                    } else null
-                } else null
-            }.toMap()
-        }
-        set(value) {
-            val raw = value.entries.joinToString(",") { 
-                // Escape key-value separators
-                val escapedValue = it.value.replace(",", "%2C").replace(":", "%3A")
-                "${it.key}:$escapedValue"
+    var alarmVolume: Int
+        get() = prefs.getInt(KEY_ALARM_VOLUME, 60)
+        set(value) = prefs.edit().putInt(KEY_ALARM_VOLUME, value).apply()
+
+    fun getCustomCheckpoints(): List<String> {
+        val jsonStr = prefs.getString(KEY_CUSTOM_POINTS, null)
+        if (jsonStr != null) {
+            try {
+                val array = JSONArray(jsonStr)
+                val list = mutableListOf<String>()
+                for (i in 0 until array.length()) {
+                    list.add(array.getString(i))
+                }
+                return list
+            } catch (e: Exception) {
+                // fallback to default
             }
-            prefs.edit().putString("custom_point_names", raw).apply()
         }
+        return listOf("Gates A", "Gates B", "Main Office", "Warehouse")
+    }
 
-    var dutyStartTime: Long
-        get() = prefs.getLong(KEY_DUTY_START_TIME, 0L)
-        set(value) = prefs.edit().putLong(KEY_DUTY_START_TIME, value).apply()
+    fun saveCustomCheckpoints(points: List<String>) {
+        val array = JSONArray()
+        points.forEach { array.put(it) }
+        prefs.edit().putString(KEY_CUSTOM_POINTS, array.toString()).apply()
+    }
 }

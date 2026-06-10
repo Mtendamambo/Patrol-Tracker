@@ -1,22 +1,9 @@
 package com.example.data
 
-import kotlinx.coroutines.flow.Flow
-
-class PatrolRepository(
-    private val patrolDao: PatrolDao,
-    val preferences: PatrolPreferences
-) {
-    val allEntriesFlow: Flow<List<PatrolEntry>> = patrolDao.getAllEntriesFlow()
-
-    suspend fun getAllEntries(): List<PatrolEntry> = patrolDao.getAllEntries()
-
-    suspend fun insertEntry(entry: PatrolEntry): Long = patrolDao.insertEntry(entry)
-
-    suspend fun insertEntries(entries: List<PatrolEntry>) = patrolDao.insertEntries(entries)
-
-    suspend fun deleteEntry(entry: PatrolEntry) = patrolDao.deleteEntry(entry)
-
-    suspend fun deleteEntryById(id: Long) = patrolDao.deleteEntryById(id)
-
-    suspend fun clearAllEntries() = patrolDao.clearAllEntries()
+class PatrolRepository(private val db: AppDatabase) {
+    suspend fun getAllEntries(): List<PatrolEntry> = db.getAllEntries()
+    suspend fun insert(entry: PatrolEntry): Long = db.insertEntry(entry)
+    suspend fun insertAll(entries: List<PatrolEntry>) = db.insertAll(entries)
+    suspend fun deleteById(id: Int) = db.deleteEntry(id)
+    suspend fun clearAll() = db.clearAll()
 }

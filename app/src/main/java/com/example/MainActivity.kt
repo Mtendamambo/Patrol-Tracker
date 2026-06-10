@@ -1,8 +1,5 @@
 package com.example
 
-import android.content.ClipData
-import android.content.ClipboardManager
-import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
@@ -10,28 +7,21 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.activity.viewModels
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
+import androidx.compose.animation.*
+import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.ui.res.painterResource
-import java.util.Calendar
-import java.util.Date
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
@@ -41,46 +31,63 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.example.data.*
-import com.example.ui.*
-import com.example.ui.theme.MyApplicationTheme
+// import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.data.PatrolEntry
+import com.example.ui.ComplianceReport
+import com.example.ui.PatrolViewModel
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.*
 
-// High Density Design Styling Constants
-val ThBg = Color(0xFFFEFBFF)
-val ThTextMain = Color(0xFF1C1B1F)
-val ThTextSecondary = Color(0xFF49454F)
-val ThPurpleLight = Color(0xFFEADDFF)
-val ThPurpleDeep = Color(0xFF21005D)
-val ThPurpleBrand = Color(0xFF6750A4)
-val ThBorderNeutral = Color(0xFFCAC4D0)
-val ThDangerBg = Color(0xFFFEEBEB)
-val ThDangerText = Color(0xFFB3261E)
-val ThSuccessText = Color(0xFF386A20)
-val ThSuccessBg = Color(0xFFD1FAE5)
-val ThGridBg = Color(0xFFE7E0EC)
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.ui.res.painterResource
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.shape.CircleShape
+
+// Theme Colors - Suit both light and dark device themes seamlessly
+val ScreenBackground: Color @Composable get() = if (isSystemInDarkTheme()) Color(0xFF0F172A) else Color(0xFFF8FAFC) // slate-900 vs slate-50
+val CardSurface: Color @Composable get() = if (isSystemInDarkTheme()) Color(0xFF1E293B) else Color(0xFFFFFFFF)     // slate-800 vs pure white
+val BorderColor: Color @Composable get() = if (isSystemInDarkTheme()) Color(0xFF334155) else Color(0xFFE2E8F0)     // slate-700 vs slate-200
+val TextPrimary: Color @Composable get() = if (isSystemInDarkTheme()) Color(0xFFF1F5F9) else Color(0xFF0F172A)     // slate-100 vs slate-900
+val TextSecondary: Color @Composable get() = if (isSystemInDarkTheme()) Color(0xFF94A3B8) else Color(0xFF52525B)   // slate-400 vs zinc-600
+val CustomNeonCyan: Color @Composable get() = if (isSystemInDarkTheme()) Color(0xFF38BDF8) else Color(0xFF0284C7)  // sky-400 vs sky-600
+val CustomTeal: Color @Composable get() = if (isSystemInDarkTheme()) Color(0xFF0D9488) else Color(0xFF0F766E)      // teal-600 vs teal-700
+val CustomAmber: Color @Composable get() = if (isSystemInDarkTheme()) Color(0xFFD97706) else Color(0xFFB45309)     // amber-600 vs amber-700
+val CustomGreen: Color @Composable get() = if (isSystemInDarkTheme()) Color(0xFF059669) else Color(0xFF047857)     // emerald-600 vs emerald-700
+val CustomRed: Color @Composable get() = if (isSystemInDarkTheme()) Color(0xFFDC2626) else Color(0xFFB91C1C)       // red-600 vs red-700
+val CustomPurple: Color @Composable get() = if (isSystemInDarkTheme()) Color(0xFF7C3AED) else Color(0xFF6D28D9)    // purple-600 vs purple-700
+val BrightWhite: Color @Composable get() = if (isSystemInDarkTheme()) Color(0xFFF8FAFC) else Color(0xFF1E293B)     // slate-50 vs slate-800
 
 class MainActivity : ComponentActivity() {
-    private val viewModel: PatrolViewModel by viewModels()
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
         setContent {
-            MyApplicationTheme {
-                Scaffold(
+            val isDark = isSystemInDarkTheme()
+            val colors = if (isDark) {
+                darkColorScheme(
+                    background = ScreenBackground,
+                    surface = CardSurface,
+                    primary = CustomNeonCyan,
+                    secondary = CustomTeal,
+                    error = CustomRed
+                )
+            } else {
+                lightColorScheme(
+                    background = ScreenBackground,
+                    surface = CardSurface,
+                    primary = CustomNeonCyan,
+                    secondary = CustomTeal,
+                    error = CustomRed
+                )
+            }
+            MaterialTheme(
+                colorScheme = colors
+            ) {
+                Surface(
                     modifier = Modifier.fillMaxSize(),
-                    containerColor = ThBg
-                ) { innerPadding ->
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(innerPadding)
-                            .background(ThBg)
-                    ) {
-                        PatrolTrackerScreen(viewModel = viewModel)
-                    }
+                    color = ScreenBackground
+                ) {
+                    AppNavigationContainer()
                 }
             }
         }
@@ -89,1064 +96,1939 @@ class MainActivity : ComponentActivity() {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PatrolTrackerScreen(viewModel: PatrolViewModel) {
+fun AppNavigationContainer() {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-
-    // ViewModel States
-    val offDuty by viewModel.offDuty.collectAsStateWithLifecycle()
-    val emergencyNum by viewModel.emergencyNumber.collectAsStateWithLifecycle()
-    val activePoints by viewModel.points.collectAsStateWithLifecycle()
-    val dutyStart by viewModel.dutyStartTime.collectAsStateWithLifecycle()
-    val allEntries by viewModel.allEntries.collectAsStateWithLifecycle()
-    val stats by viewModel.statsState.collectAsStateWithLifecycle()
-    val customPointNames by viewModel.customPointNames.collectAsStateWithLifecycle()
-    val canUndoState by viewModel.canUndo.collectAsStateWithLifecycle()
-    val canUndoReset by viewModel.canUndoReset.collectAsStateWithLifecycle()
-
-    // Dialog & Alarm States
-    val alarmActive by viewModel.alarmActive.collectAsStateWithLifecycle()
-    val alarmMsg by viewModel.alarmMessage.collectAsStateWithLifecycle()
-    val monthlyReport by viewModel.monthlyReportData.collectAsStateWithLifecycle()
-
-    // Timer texts
-    val countdownText by viewModel.countdownText.collectAsStateWithLifecycle()
-    val deadlineText by viewModel.deadlineText.collectAsStateWithLifecycle()
-    val hourIndicatorText by viewModel.hourIndicatorText.collectAsStateWithLifecycle()
-    val windowStatusText by viewModel.windowStatusText.collectAsStateWithLifecycle()
-    val isWindowActive by viewModel.isWindowActive.collectAsStateWithLifecycle()
-
-    // Tab State: 0 = DASH, 1 = BACKUP, 2 = SETTINGS
-    var selectedTab by remember { mutableStateOf(0) }
-
-    // UI Inputs & UI States
-    var customNoteInput by remember { mutableStateOf("") }
-    var emergencyInput by remember { mutableStateOf(emergencyNum) }
-    var activeConfirmingPoint by remember { mutableStateOf<Int?>(null) }
-
-    // Backup Import Result Launcher
-    val filePickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent()
-    ) { uri: Uri? ->
-        uri?.let {
-            try {
-                val rStream = context.contentResolver.openInputStream(it)
-                rStream?.use { stream ->
-                    val textContent = stream.bufferedReader().use { br -> br.readText() }
-                    viewModel.importBackup(
-                        jsonString = textContent,
-                        onSuccess = { count ->
-                            Toast.makeText(context, "Imported $count logs successfully!", Toast.LENGTH_SHORT).show()
-                        },
-                        onError = { err ->
-                            Toast.makeText(context, "Import failed: $err", Toast.LENGTH_LONG).show()
-                        }
-                    )
-                }
-            } catch (e: Exception) {
-                Toast.makeText(context, "Failed to read file: ${e.message}", Toast.LENGTH_LONG).show()
-            }
-        }
+    val owner = LocalContext.current as ComponentActivity
+    val viewModel: PatrolViewModel = remember(owner) {
+        androidx.lifecycle.ViewModelProvider(owner)[PatrolViewModel::class.java]
     }
 
-    var pendingExportJson by remember { mutableStateOf<String?>(null) }
+    val patrolEntries by viewModel.patrolEntries.collectAsState()
+    val isOnDuty by viewModel.isOnDuty.collectAsState()
+    val timerTick by viewModel.timerTick.collectAsState()
+    val nextDeadlineTime by viewModel.nextDeadlineTime.collectAsState()
+    val secondsRemaining by viewModel.secondsRemaining.collectAsState()
+    val missingPoints by viewModel.missingPoints.collectAsState()
+    val customCheckpoints by viewModel.customCheckpoints.collectAsState()
+    val complianceReport by viewModel.complianceReport.collectAsState()
+    val canUndo by viewModel.canUndo.collectAsState()
+    val alarmSoundActive by viewModel.alarmSoundActive.collectAsState()
 
+    var activeTab by remember { mutableStateOf("DASHBOARD") }
+
+    // Dialog triggering states
+    var activeLogPoint by remember { mutableStateOf<String?>(null) }
+    var checkpointNotesInput by remember { mutableStateOf("") }
+    var showEmergencyDialog by remember { mutableStateOf(false) }
+    var emergencyNotesInput by remember { mutableStateOf("") }
+    var showReportDialog by remember { mutableStateOf(false) }
+
+    // Launchers for save/restore backups
     val createJsonLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.CreateDocument("application/json")
     ) { uri: Uri? ->
         uri?.let {
-            pendingExportJson?.let { jsonContent ->
+            scope.launch {
                 try {
-                    context.contentResolver.openOutputStream(it)?.use { stream ->
-                        stream.write(jsonContent.toByteArray())
+                    context.contentResolver.openOutputStream(it)?.use { outputStream ->
+                        val jsonLiteral = viewModel.getExportString()
+                        outputStream.write(jsonLiteral.toByteArray())
                     }
-                    Toast.makeText(context, "Backup saved to your storage!", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, "Patrol logs saved successfully!", Toast.LENGTH_SHORT).show()
                 } catch (e: Exception) {
-                    Toast.makeText(context, "Failed to save file: ${e.message}", Toast.LENGTH_LONG).show()
+                    Toast.makeText(context, "Export error: ${e.message}", Toast.LENGTH_LONG).show()
                 }
             }
         }
     }
 
-    // Initialize emergency number once loaded
-    LaunchedEffect(emergencyNum) {
-        emergencyInput = emergencyNum
-    }
-
-    val scrollState = rememberScrollState()
-
-    LaunchedEffect(selectedTab) {
-        scrollState.scrollTo(0)
-    }
-
-    // Main App Container mapping High Density Mockup Flex Structure
-    Column(modifier = Modifier.fillMaxSize()) {
-        
-        // 1. Static Layout Header Section (Consistent across all Tabs)
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp)
-                .background(ThBg),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                Image(
-                    painter = painterResource(id = R.drawable.ic_launcher_foreground),
-                    contentDescription = "Patrol Tracker Logo",
-                    modifier = Modifier.size(38.dp)
-                )
-                Column {
-                    Text(
-                        text = "Patrol Tracker",
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Black,
-                        color = ThTextMain,
-                        letterSpacing = (-0.5).sp
-                    )
-                    Text(
-                        text = "VERSION 5.5 • OFFLINE MODE",
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = ThPurpleBrand,
-                        letterSpacing = 0.5.sp
-                    )
+    val importJsonLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument()
+    ) { uri: Uri? ->
+        uri?.let {
+            scope.launch {
+                try {
+                    context.contentResolver.openInputStream(it)?.use { inputStream ->
+                        val jsonString = inputStream.bufferedReader().use { r -> r.readText() }
+                        viewModel.restoreFromJson(
+                            jsonString = jsonString,
+                            onError = { error ->
+                                Toast.makeText(context, "Restore failed: $error", Toast.LENGTH_LONG).show()
+                            },
+                            onSuccess = { inserted, skipped ->
+                                Toast.makeText(
+                                    context,
+                                    "Database Restored! Loaded: $inserted checks. Skipped duplicates: $skipped",
+                                    Toast.LENGTH_LONG
+                                ).show()
+                            }
+                        )
+                    }
+                } catch (e: Exception) {
+                    Toast.makeText(context, "Restore error: ${e.message}", Toast.LENGTH_LONG).show()
                 }
             }
+        }
+    }
 
-            // High Contrast Header Panic Button
-            Button(
-                onClick = {
-                    val targetNum = emergencyNum.replace("[^0-9]".toRegex(), "")
-                    if (targetNum.isBlank()) {
-                        Toast.makeText(context, "No emergency number saved! Add under Settings.", Toast.LENGTH_LONG).show()
-                    } else {
-                        try {
-                            val messageStr = Uri.encode("🚨 Emergency Alert: Immediate assistance required!")
-                            val waIntent = Intent(Intent.ACTION_VIEW, Uri.parse("https://wa.me/$targetNum?text=$messageStr"))
-                            context.startActivity(waIntent)
-                        } catch (e: Exception) {
-                            Toast.makeText(context, "Could not open WhatsApp. Ensure it is installed.", Toast.LENGTH_LONG).show()
-                        }
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Image(
+                            painter = painterResource(id = R.drawable.logo_patrologger),
+                            contentDescription = "Patrologger logo",
+                            modifier = Modifier
+                                .size(28.dp)
+                                .clip(RoundedCornerShape(6.dp))
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "PATROLOGGER",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Black,
+                            color = BrightWhite,
+                            letterSpacing = 1.sp
+                        )
                     }
                 },
-                colors = ButtonDefaults.buttonColors(containerColor = ThDangerText),
-                shape = RoundedCornerShape(16.dp),
-                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = CardSurface),
+                actions = {
+                    if (canUndo) {
+                        IconButton(onClick = {
+                            viewModel.undoLastAction()
+                            Toast.makeText(context, "Last action reversed!", Toast.LENGTH_SHORT).show()
+                        }) {
+                            Icon(
+                                imageVector = Icons.Default.Refresh,
+                                contentDescription = "Undo button",
+                                tint = CustomNeonCyan
+                            )
+                        }
+                    }
+                }
+            )
+        },
+        bottomBar = {
+            // Sleek compact tab navigation to safe height
+            Surface(
                 modifier = Modifier
-                    .height(44.dp)
-                    .testTag("panic_button")
+                    .fillMaxWidth()
+                    .navigationBarsPadding(),
+                color = CardSurface,
+                border = BorderStroke(width = 1.dp, color = BorderColor)
             ) {
-                Text("PANIC", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(54.dp)
+                        .padding(horizontal = 8.dp, vertical = 2.dp),
+                    horizontalArrangement = Arrangement.SpaceAround,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // Dashboard tab
+                    IconButton(
+                        onClick = { activeTab = "DASHBOARD" },
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Icon(
+                                imageVector = Icons.Default.Home,
+                                contentDescription = "Dashboard",
+                                tint = if (activeTab == "DASHBOARD") CustomNeonCyan else TextSecondary,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Text(
+                                "Dashboard",
+                                fontSize = 10.sp,
+                                color = if (activeTab == "DASHBOARD") CustomNeonCyan else TextSecondary,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+
+                    // Log History
+                    IconButton(
+                        onClick = { activeTab = "HISTORY" },
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Icon(
+                                imageVector = Icons.Default.List,
+                                contentDescription = "History Logs",
+                                tint = if (activeTab == "HISTORY") CustomNeonCyan else TextSecondary,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Text(
+                                "Patrol File",
+                                fontSize = 10.sp,
+                                color = if (activeTab == "HISTORY") CustomNeonCyan else TextSecondary,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+
+                    // Settings Screen
+                    IconButton(
+                        onClick = { activeTab = "SETTINGS" },
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Icon(
+                                imageVector = Icons.Default.Settings,
+                                contentDescription = "System setup",
+                                tint = if (activeTab == "SETTINGS") CustomNeonCyan else TextSecondary,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Text(
+                                "Settings",
+                                fontSize = 10.sp,
+                                color = if (activeTab == "SETTINGS") CustomNeonCyan else TextSecondary,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+                }
             }
         }
-
-        // Divider under the main header
-        Divider(color = ThBorderNeutral.copy(alpha = 0.5f), thickness = 1.dp)
-
-        // 2. Tab-dependent Content Area
+    ) { innerPadding ->
         Box(
             modifier = Modifier
-                .weight(1f)
-                .fillMaxWidth()
+                .fillMaxSize()
+                .padding(innerPadding)
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .verticalScroll(scrollState)
-                    .padding(horizontal = 12.dp, vertical = 6.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                when (selectedTab) {
-                    0 -> { // ================= DASH TAB =================
-                        // A. Duty Status Card
-                        Card(
+            when (activeTab) {
+                "DASHBOARD" -> DashboardScreen(
+                    viewModel = viewModel,
+                    isOnDuty = isOnDuty,
+                    timerTick = timerTick,
+                    nextDeadlineTime = nextDeadlineTime,
+                    secondsRemaining = secondsRemaining,
+                    missingPoints = missingPoints,
+                    customCheckpoints = customCheckpoints,
+                    onLogPointClick = { activeLogPoint = it },
+                    onToggleDuty = { viewModel.toggleDuty(context) },
+                    onTriggerEmergency = { showEmergencyDialog = true }
+                )
+                "HISTORY" -> LogHistoryScreen(
+                    patrolEntries = patrolEntries,
+                    onDeleteLog = { viewModel.deleteLog(it) },
+                    onExportJson = { createJsonLauncher.launch("patrol_logs_backup.json") },
+                    onImportJson = { importJsonLauncher.launch(arrayOf("*/*")) },
+                    onResetDb = {
+                        viewModel.resetLogs()
+                        Toast.makeText(context, "Database cleared! Press Undo to restore.", Toast.LENGTH_LONG).show()
+                    },
+                    onCalculateReport = {
+                        viewModel.calculateMonthlyReport()
+                        showReportDialog = true
+                    }
+                )
+                "SETTINGS" -> SettingsScreen(
+                    viewModel = viewModel,
+                    customPoints = customCheckpoints,
+                    onAddCheckpoint = { name -> viewModel.addCheckpoint(name, context) },
+                    onRemoveCheckpoint = { name -> viewModel.removeCheckpoint(name, context) }
+                )
+            }
+
+            // Quick log checkpoint dialog with custom notes
+            if (activeLogPoint != null) {
+                val pointName = activeLogPoint!!
+                Dialog(onDismissRequest = { activeLogPoint = null }) {
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        colors = CardDefaults.cardColors(containerColor = CardSurface),
+                        border = BorderStroke(1.dp, BorderColor)
+                    ) {
+                        Column(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(vertical = 4.dp),
-                            colors = CardDefaults.cardColors(
-                                containerColor = if (offDuty) Color(0xFFF3EDF7) else ThPurpleLight
-                            ),
-                            shape = RoundedCornerShape(24.dp),
-                            elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                                .padding(16.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
                         ) {
-                            Column(modifier = Modifier.padding(16.dp)) {
-                                // Duty Action row
+                            Text(
+                                text = "LOGGING SECURITY CHECK",
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Black,
+                                color = CustomNeonCyan
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = "Point: $pointName",
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = BrightWhite
+                            )
+                            Spacer(modifier = Modifier.height(12.dp))
+
+                            OutlinedTextField(
+                                value = checkpointNotesInput,
+                                onValueChange = { checkpointNotesInput = it },
+                                label = { Text("Activity notes (e.g., Secure)", fontSize = 11.sp) },
+                                singleLine = true,
+                                textStyle = LocalTextStyle.current.copy(fontSize = 12.sp),
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedBorderColor = CustomNeonCyan,
+                                    unfocusedBorderColor = BorderColor,
+                                    focusedTextColor = BrightWhite,
+                                    unfocusedTextColor = BrightWhite
+                                )
+                            )
+
+                            Spacer(modifier = Modifier.height(16.dp))
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                OutlinedButton(
+                                    onClick = {
+                                        activeLogPoint = null
+                                        checkpointNotesInput = ""
+                                    },
+                                    modifier = Modifier.weight(1f),
+                                    colors = ButtonDefaults.outlinedButtonColors(contentColor = TextSecondary),
+                                    border = BorderStroke(1.dp, BorderColor)
+                                ) {
+                                    Text("CANCEL", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                }
+
+                                Button(
+                                    onClick = {
+                                        if (viewModel.canLogCheckpoint(pointName)) {
+                                            viewModel.logCheckpoint(pointName, checkpointNotesInput)
+                                            activeLogPoint = null
+                                            checkpointNotesInput = ""
+                                            Toast.makeText(context, "Checkpoint registered!", Toast.LENGTH_SHORT).show()
+                                        } else {
+                                            viewModel.playSoundAlarm()
+                                            Toast.makeText(
+                                                context,
+                                                "⚠️ ACCESS DENIED: \"$pointName\" already tagged this hour!",
+                                                Toast.LENGTH_LONG
+                                            ).show()
+                                            activeLogPoint = null
+                                            checkpointNotesInput = ""
+                                        }
+                                    },
+                                    modifier = Modifier.weight(1f),
+                                    colors = ButtonDefaults.buttonColors(containerColor = CustomNeonCyan)
+                                ) {
+                                    Text("SUBMIT", fontSize = 11.sp, fontWeight = FontWeight.Black, color = ScreenBackground)
+                                }
+                            }
+                        }
+                    }
+                }
+                       // Quick Emergency logging dialog
+            if (showEmergencyDialog) {
+                var selectedCategory by remember { mutableStateOf("Intruder") }
+                val categoriesList = listOf("Intruder", "Fire", "Mob", "Suspicious Device", "Disaster", "Other")
+
+                Dialog(onDismissRequest = { showEmergencyDialog = false }) {
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(10.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFF3B1E1E)),
+                        border = BorderStroke(1.5.dp, CustomRed),
+                        shape = RoundedCornerShape(16.dp)
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(
+                                text = "🚨 CRITICAL SOS REPORTING",
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.Black,
+                                color = Color.White
+                            )
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Text(
+                                text = "Registers in database log and triggers urgent assistance via WhatsApp or Hotline.",
+                                fontSize = 11.sp,
+                                color = Color(0xFFFECACA),
+                                textAlign = TextAlign.Center
+                            )
+                            Spacer(modifier = Modifier.height(12.dp))
+
+                            Text(
+                                text = "SELECT THREAT TYPE / CATEGORY:",
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFFFCA5A5),
+                                modifier = Modifier.align(Alignment.Start).padding(bottom = 6.dp)
+                            )
+
+                            // 2-column Threat Type selector
+                            categoriesList.chunked(2).forEach { rowList ->
                                 Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
+                                    modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    rowList.forEach { categoryItem ->
+                                        val isSelected = selectedCategory == categoryItem
+                                        Card(
+                                            onClick = { selectedCategory = categoryItem },
+                                            modifier = Modifier.weight(1f).height(36.dp),
+                                            shape = RoundedCornerShape(8.dp),
+                                            colors = CardDefaults.cardColors(
+                                                containerColor = if (isSelected) CustomRed else Color(0xFF4C2121)
+                                            ),
+                                            border = BorderStroke(1.dp, if (isSelected) Color.White else Color(0xFF7F1D1D))
+                                        ) {
+                                            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                                Text(
+                                                    text = categoryItem.uppercase(),
+                                                    fontSize = 10.sp,
+                                                    fontWeight = FontWeight.Black,
+                                                    color = if (isSelected) Color.White else Color(0xFFFECACA)
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.height(10.dp))
+
+                            OutlinedTextField(
+                                value = emergencyNotesInput,
+                                onValueChange = { emergencyNotesInput = it },
+                                label = { Text("Emergency notes details / situation", fontSize = 11.sp, color = Color(0xFFFCA5A5)) },
+                                singleLine = true,
+                                textStyle = LocalTextStyle.current.copy(fontSize = 12.sp),
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedBorderColor = CustomRed,
+                                    unfocusedBorderColor = Color(0xFF7F1D1D),
+                                    focusedTextColor = Color.White,
+                                    unfocusedTextColor = Color.White
+                                )
+                            )
+
+                            Spacer(modifier = Modifier.height(16.dp))
+
+                            // Three actions layout: Cancel (outline), Call Hotline (outline/red), Send WhatsApp (solid RED)
+                            Column(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Button(
+                                    onClick = {
+                                        viewModel.logEmergency(selectedCategory, emergencyNotesInput)
+                                        showEmergencyDialog = false
+                                        
+                                        // WhatsApp launch URL
+                                        val rawPhone = viewModel.prefs.emergencyNumber
+                                        val cleanPhone = rawPhone.replace(Regex("[^0-9]"), "")
+                                        val msg = "Emergency assistance required. Category: ${selectedCategory.uppercase()}${if (emergencyNotesInput.isNotBlank()) " | Notes: $emergencyNotesInput" else ""}"
+                                        val encodedMsg = Uri.encode(msg)
+                                        val whatsappUrl = "https://wa.me/$cleanPhone?text=$encodedMsg"
+                                        
+                                        try {
+                                            val intent = Intent(Intent.ACTION_VIEW).apply {
+                                                data = Uri.parse(whatsappUrl)
+                                            }
+                                            context.startActivity(intent)
+                                        } catch (e: Exception) {
+                                            Toast.makeText(context, "Could not open WhatsApp. Launching Dial pad...", Toast.LENGTH_SHORT).show()
+                                            val dialIntent = Intent(Intent.ACTION_DIAL).apply {
+                                                data = Uri.parse("tel:${viewModel.prefs.emergencyNumber}")
+                                            }
+                                            context.startActivity(dialIntent)
+                                        }
+                                        emergencyNotesInput = ""
+                                    },
+                                    modifier = Modifier.fillMaxWidth().height(42.dp),
+                                    colors = ButtonDefaults.buttonColors(containerColor = CustomRed)
                                 ) {
                                     Row(
                                         verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                        horizontalArrangement = Arrangement.Center
                                     ) {
-                                        Box(
-                                            modifier = Modifier
-                                                .size(8.dp)
-                                                .background(
-                                                    color = if (offDuty) ThDangerText else ThSuccessText,
-                                                    shape = androidx.compose.foundation.shape.CircleShape
-                                                )
+                                        Icon(
+                                            imageVector = Icons.Default.Send,
+                                            contentDescription = "WhatsApp",
+                                            tint = Color.White,
+                                            modifier = Modifier.size(16.dp)
                                         )
-                                        Text(
-                                            text = "Status: ${if (offDuty) "OFF DUTY" else "ON DUTY"}",
-                                            fontWeight = FontWeight.Black,
-                                            fontSize = 14.sp,
-                                            color = if (offDuty) ThTextMain else ThPurpleDeep
-                                        )
-                                    }
-
-                                    Button(
-                                        onClick = {
-                                            if (offDuty) viewModel.setOnDuty() else viewModel.setOffDuty()
-                                        },
-                                        colors = ButtonDefaults.buttonColors(
-                                            containerColor = if (offDuty) ThPurpleDeep else Color(0xFFB3261E).copy(alpha = 0.1f)
-                                        ),
-                                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
-                                        modifier = Modifier
-                                            .height(32.dp)
-                                            .testTag("toggle_shift_button"),
-                                        shape = RoundedCornerShape(12.dp)
-                                    ) {
-                                        Text(
-                                            text = if (offDuty) "START SHIFT" else "END SHIFT",
-                                            color = if (offDuty) Color.White else ThDangerText,
-                                            fontSize = 11.sp,
-                                            fontWeight = FontWeight.Bold
-                                        )
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text("LOG & SEND WHATSAPP SOS", fontSize = 11.sp, fontWeight = FontWeight.Black, color = Color.White)
                                     }
                                 }
-
-                                Spacer(modifier = Modifier.height(12.dp))
-
-                                // Next Deadline & Countdowns
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.Bottom
-                                ) {
-                                    Column {
-                                        Text(
-                                            text = "NEXT DEADLINE",
-                                            fontSize = 9.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = if (offDuty) ThTextSecondary else ThPurpleDeep.copy(alpha = 0.8f),
-                                            letterSpacing = 0.5.sp
-                                        )
-                                        
-                                        // Robust extract of HH:MM:SS from deadlineText
-                                        val timeRegex = Regex("\\d{2}:\\d{2}:\\d{2}")
-                                        val match = timeRegex.find(deadlineText)
-                                        val formattedDeadline = match?.value ?: "18:00:00"
-
-                                        Text(
-                                            text = if (offDuty) "--:--:--" else formattedDeadline,
-                                            fontSize = 24.sp,
-                                            fontWeight = FontWeight.Black,
-                                            color = if (offDuty) ThTextSecondary else ThPurpleDeep
-                                        )
-                                    }
-
-                                    Column(horizontalAlignment = Alignment.End) {
-                                        Text(
-                                            text = "REMAINING",
-                                            fontSize = 9.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = if (offDuty) ThTextSecondary else ThPurpleDeep.copy(alpha = 0.8f),
-                                            letterSpacing = 0.5.sp
-                                        )
-                                        val cleanRemaining = countdownText.replace("⏰", "").replace("remaining", "").trim()
-                                        Text(
-                                            text = if (offDuty) "Inactive" else if (countdownText.contains("passed")) "Overdue" else cleanRemaining,
-                                            fontSize = 16.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = if (offDuty) ThTextSecondary else ThSuccessText
-                                        )
-                                    }
-                                }
-
-                                Spacer(modifier = Modifier.height(12.dp))
-
-                                // Active indicator bar tracking
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .height(8.dp)
-                                        .background(if (offDuty) ThBorderNeutral.copy(alpha = 0.3f) else Color(0xFFD0BCFF), RoundedCornerShape(100.dp))
-                                ) {
-                                    Box(
-                                        modifier = Modifier
-                                            .fillMaxHeight()
-                                            .fillMaxWidth(if (offDuty) 0f else 0.65f)
-                                            .background(if (offDuty) ThTextSecondary else ThPurpleBrand, RoundedCornerShape(100.dp))
-                                    )
-                                }
-                            }
-                        }
-
-                        // B. Points Control Grid (Compact 5-column Layout)
-                        Spacer(modifier = Modifier.height(6.dp))
-                        
-                        if (activePoints.isEmpty()) {
-                            Card(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 4.dp),
-                                colors = CardDefaults.cardColors(containerColor = Color.White),
-                                border = BorderStroke(1.dp, ThBorderNeutral),
-                                shape = RoundedCornerShape(16.dp)
-                            ) {
-                                Text(
-                                    text = "No active patrol points configured.",
-                                    fontSize = 13.sp,
-                                    color = ThTextSecondary,
-                                    textAlign = TextAlign.Center,
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(16.dp)
-                                )
-                            }
-                        } else {
-                            val rowChunkSize = 5
-                            val rows = activePoints.chunked(rowChunkSize)
-                            Column(modifier = Modifier.fillMaxWidth()) {
-                                rows.forEach { row ->
-                                    Row(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(vertical = 3.dp),
-                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                                    ) {
-                                        row.forEach { pNum ->
-                                            val formattedNum = String.format("%02d", pNum)
-                                            val pointName = customPointNames[pNum] ?: formattedNum
-                                            Button(
-                                                onClick = { activeConfirmingPoint = pNum },
-                                                enabled = !offDuty,
-                                                colors = ButtonDefaults.buttonColors(
-                                                    containerColor = ThGridBg,
-                                                    disabledContainerColor = ThBorderNeutral.copy(alpha = 0.3f)
-                                                ),
-                                                border = BorderStroke(1.dp, ThBorderNeutral),
-                                                shape = RoundedCornerShape(16.dp),
-                                                contentPadding = PaddingValues(2.dp),
-                                                modifier = Modifier
-                                                    .weight(1f)
-                                                    .height(48.dp)
-                                                    .testTag("point_grid_$pNum")
-                                            ) {
-                                                Text(
-                                                    text = pointName,
-                                                    fontWeight = FontWeight.Black,
-                                                    fontSize = if (pointName.length > 5) 10.sp else 12.sp,
-                                                    maxLines = 1,
-                                                    color = if (offDuty) ThTextSecondary else ThPurpleBrand
-                                                )
-                                            }
-                                        }
-                                        // Empty buffers
-                                        if (row.size < rowChunkSize) {
-                                            repeat(rowChunkSize - row.size) {
-                                                Spacer(modifier = Modifier.weight(1f))
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-
-                        // C. Statistics & Info Bento Grid
-                        Spacer(modifier = Modifier.height(10.dp))
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 4.dp),
-                            horizontalArrangement = Arrangement.spacedBy(10.dp)
-                        ) {
-                            // Left Bento: Recent Logs summary list
-                            Card(
-                                modifier = Modifier
-                                    .weight(1.1f)
-                                    .height(190.dp),
-                                colors = CardDefaults.cardColors(containerColor = Color.White),
-                                shape = RoundedCornerShape(24.dp),
-                                border = BorderStroke(1.dp, ThBorderNeutral)
-                            ) {
-                                Column(modifier = Modifier.fillMaxSize()) {
-                                    // Header title band
-                                    Row(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .background(Color(0xFFF7F2FA))
-                                            .padding(horizontal = 12.dp, vertical = 6.dp),
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Text(
-                                            text = "RECENT LOG",
-                                            fontSize = 9.sp,
-                                            fontWeight = FontWeight.Black,
-                                            color = ThTextSecondary,
-                                            letterSpacing = 0.5.sp
-                                        )
-                                        Text(
-                                            text = "VIEW",
-                                            fontSize = 9.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = ThPurpleBrand
-                                        )
-                                    }
-
-                                    // Quick scroll of active indices
-                                    Column(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(8.dp)
-                                            .verticalScroll(rememberScrollState()),
-                                        verticalArrangement = Arrangement.spacedBy(6.dp)
-                                    ) {
-                                        if (allEntries.isEmpty()) {
-                                            Text(
-                                                text = "Pending patrol logs...",
-                                                fontSize = 11.sp,
-                                                color = ThTextSecondary.copy(alpha = 0.6f),
-                                                modifier = Modifier.padding(top = 16.dp),
-                                                textAlign = TextAlign.Center
-                                            )
-                                        } else {
-                                            allEntries.take(3).forEach { entry ->
-                                                Column(modifier = Modifier.fillMaxWidth()) {
-                                                    Row(
-                                                        modifier = Modifier.fillMaxWidth(),
-                                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                                        verticalAlignment = Alignment.CenterVertically
-                                                    ) {
-                                                        val labelVal = entry.point?.let { customPointNames[it] ?: it.toString() } ?: ""
-                                                        Text(
-                                                            text = if (entry.note != null) "Note" else "Point $labelVal",
-                                                            fontSize = 11.sp,
-                                                            fontWeight = FontWeight.Bold,
-                                                            color = ThTextMain
-                                                        )
-                                                        Text(
-                                                            text = entry.time,
-                                                            fontSize = 9.sp,
-                                                            color = ThTextSecondary
-                                                        )
-                                                    }
-                                                    Text(
-                                                        text = if (entry.outOfWindow) "Outside Window ⚠️" else "Within Window",
-                                                        fontSize = 9.sp,
-                                                        color = if (entry.outOfWindow) ThDangerText else ThSuccessText,
-                                                        fontWeight = FontWeight.Medium
-                                                    )
-                                                }
-                                                Divider(color = ThBorderNeutral.copy(alpha = 0.3f), thickness = 0.5.dp)
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-
-                            // Right Bento: Metrics stacking (Violations + Active hours)
-                            Column(
-                                modifier = Modifier
-                                    .weight(0.9f)
-                                    .height(190.dp),
-                                verticalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                // Violations counts
-                                Card(
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .fillMaxWidth(),
-                                    colors = CardDefaults.cardColors(containerColor = ThDangerBg),
-                                    shape = RoundedCornerShape(20.dp)
-                                ) {
-                                    Column(
-                                        modifier = Modifier
-                                            .fillMaxSize()
-                                            .padding(10.dp),
-                                        horizontalAlignment = Alignment.CenterHorizontally,
-                                        verticalArrangement = Arrangement.Center
-                                    ) {
-                                        Text(
-                                            text = "VIOLATIONS",
-                                            fontSize = 9.sp,
-                                            fontWeight = FontWeight.Black,
-                                            color = ThDangerText,
-                                            letterSpacing = 0.5.sp
-                                        )
-                                        Text(
-                                            text = String.format("%02d", stats.totalViolations),
-                                            fontSize = 24.sp,
-                                            fontWeight = FontWeight.Black,
-                                            color = ThDangerText
-                                        )
-                                        Text(
-                                            text = "Gaps > 65m",
-                                            fontSize = 8.sp,
-                                            color = ThDangerText.copy(alpha = 0.7f),
-                                            fontWeight = FontWeight.SemiBold
-                                        )
-                                    }
-                                }
-
-                                // Worked Hours index
-                                Card(
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .fillMaxWidth(),
-                                    colors = CardDefaults.cardColors(containerColor = Color(0xFFF3F4F6)),
-                                    shape = RoundedCornerShape(20.dp),
-                                    border = BorderStroke(1.dp, Color(0xFFE5E7EB))
-                                ) {
-                                    Column(
-                                        modifier = Modifier
-                                            .fillMaxSize()
-                                            .padding(10.dp),
-                                        horizontalAlignment = Alignment.CenterHorizontally,
-                                        verticalArrangement = Arrangement.Center
-                                    ) {
-                                        Text(
-                                            text = "ACTIVE HOURS",
-                                            fontSize = 9.sp,
-                                            fontWeight = FontWeight.Black,
-                                            color = Color(0xFF4B5563),
-                                            letterSpacing = 0.5.sp
-                                        )
-                                        Text(
-                                            text = String.format(java.util.Locale.US, "%.1f", stats.hoursWorkedToday.toDouble()),
-                                            fontSize = 24.sp,
-                                            fontWeight = FontWeight.Black,
-                                            color = Color(0xFF1F2937)
-                                        )
-                                        Text(
-                                            text = "On-Duty Shift",
-                                            fontSize = 8.sp,
-                                            color = Color(0xFF6B7280),
-                                            fontWeight = FontWeight.SemiBold
-                                        )
-                                    }
-                                }
-                            }
-                        }
-
-                        // D. Quick Note Controls Row
-                        Spacer(modifier = Modifier.height(6.dp))
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 4.dp),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            OutlinedTextField(
-                                value = customNoteInput,
-                                onValueChange = { customNoteInput = it },
-                                modifier = Modifier
-                                    .weight(1.2f)
-                                    .height(52.dp),
-                                placeholder = { Text("Quick note...", fontSize = 12.sp) },
-                                textStyle = LocalTextStyle.current.copy(fontSize = 12.sp),
-                                shape = RoundedCornerShape(16.dp),
-                                enabled = !offDuty,
-                                colors = OutlinedTextFieldDefaults.colors(
-                                    focusedTextColor = ThTextMain,
-                                    unfocusedTextColor = ThTextMain,
-                                    focusedContainerColor = Color.White,
-                                    unfocusedContainerColor = Color.White,
-                                    focusedBorderColor = ThPurpleBrand,
-                                    unfocusedBorderColor = ThBorderNeutral
-                                ),
-                                singleLine = true
-                            )
-                            Button(
-                                onClick = {
-                                    if (customNoteInput.isNotBlank()) {
-                                        viewModel.logCustomNote(customNoteInput)
-                                        customNoteInput = ""
-                                        Toast.makeText(context, "Logged note!", Toast.LENGTH_SHORT).show()
-                                    }
-                                },
-                                enabled = !offDuty && customNoteInput.isNotBlank(),
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = ThPurpleBrand,
-                                    disabledContainerColor = ThBorderNeutral.copy(alpha = 0.5f)
-                                ),
-                                shape = RoundedCornerShape(16.dp),
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .height(48.dp)
-                                    .testTag("submit_note_button")
-                            ) {
-                                Text("SAVE ENTRY", fontSize = 11.sp, fontWeight = FontWeight.Black, color = Color.White)
-                            }
-                        }
-
-                        // E. Complete Patrol Logs Grouped List Block
-                        Spacer(modifier = Modifier.height(10.dp))
-                        Card(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 4.dp),
-                            colors = CardDefaults.cardColors(containerColor = Color.White),
-                            shape = RoundedCornerShape(24.dp),
-                            border = BorderStroke(1.dp, ThBorderNeutral)
-                        ) {
-                            Column(modifier = Modifier.padding(16.dp)) {
-                                Text(
-                                    text = "Guard Records History",
-                                    fontSize = 15.sp,
-                                    fontWeight = FontWeight.Black,
-                                    color = ThTextMain
-                                )
-                                Spacer(modifier = Modifier.height(10.dp))
-
-                                if (allEntries.isEmpty()) {
-                                    Box(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(vertical = 24.dp),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Text(
-                                            text = "No patrol entries registered yet.",
-                                            color = ThTextSecondary.copy(alpha = 0.7f),
-                                            fontSize = 12.sp
-                                        )
-                                    }
-                                } else {
-                                    val groupedLogs = remember(allEntries) {
-                                        val map = mutableMapOf<String, MutableMap<Int, MutableList<PatrolEntry>>>()
-                                        allEntries.forEach { e -> _addEntryToMap(map, e) }
-                                        map
-                                    }
-
-                                    groupedLogs.keys.sortedDescending().forEach { dateLabel ->
-                                        val dateHourMap = groupedLogs[dateLabel] ?: return@forEach
-
-                                        Text(
-                                            text = "Date: $dateLabel",
-                                            fontSize = 13.sp,
-                                            fontWeight = FontWeight.Black,
-                                            color = ThPurpleBrand,
-                                            modifier = Modifier.padding(top = 10.dp, bottom = 4.dp)
-                                        )
-                                        Divider(color = ThBorderNeutral.copy(alpha = 0.4f), thickness = 0.5.dp)
-
-                                        dateHourMap.keys.sortedDescending().forEach { hour ->
-                                            val blockEntries = dateHourMap[hour] ?: return@forEach
-
-                                            Column(
-                                                modifier = Modifier
-                                                    .fillMaxWidth()
-                                                    .padding(vertical = 4.dp)
-                                                    .background(Color(0xFFF7F2FA), RoundedCornerShape(12.dp))
-                                                    .border(BorderStroke(0.5.dp, ThBorderNeutral), RoundedCornerShape(12.dp))
-                                                    .padding(10.dp)
-                                            ) {
-                                                Row(
-                                                    modifier = Modifier.fillMaxWidth(),
-                                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                                    verticalAlignment = Alignment.CenterVertically
-                                                ) {
-                                                    Text(
-                                                        text = "Hour block $hour",
-                                                        fontSize = 12.sp,
-                                                        fontWeight = FontWeight.Bold,
-                                                        color = ThPurpleDeep
-                                                    )
-
-                                                    val loggedPoints = blockEntries.filter { it.point != null }.mapNotNull { it.point }
-                                                    val missingPoints = activePoints.filter { !loggedPoints.contains(it) }
-
-                                                    Box(
-                                                        modifier = Modifier
-                                                            .background(
-                                                                if (missingPoints.isEmpty()) ThSuccessBg else Color(0xFFFEF3C7),
-                                                                RoundedCornerShape(8.dp)
-                                                            )
-                                                            .padding(horizontal = 8.dp, vertical = 3.dp)
-                                                    ) {
-                                                        val missingStrings = missingPoints.map { customPointNames[it] ?: String.format("%02d", it) }
-                                                        Text(
-                                                            text = if (missingPoints.isEmpty()) "ALL POINTS" else "MISSING: ${missingStrings.joinToString(",")}",
-                                                            fontSize = 9.sp,
-                                                            fontWeight = FontWeight.Black,
-                                                            color = if (missingPoints.isEmpty()) ThSuccessText else Color(0xFF92400E)
-                                                        )
-                                                    }
-                                                }
-
-                                                Spacer(modifier = Modifier.height(6.dp))
-
-                                                blockEntries.sortedByDescending { it.timestamp }.forEach { entry ->
-                                                    Row(
-                                                        modifier = Modifier
-                                                            .fillMaxWidth()
-                                                            .padding(vertical = 2.dp)
-                                                            .background(Color.White, RoundedCornerShape(8.dp))
-                                                            .border(BorderStroke(0.5.dp, ThBorderNeutral.copy(alpha = 0.7f)), RoundedCornerShape(8.dp))
-                                                            .padding(horizontal = 10.dp, vertical = 6.dp),
-                                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                                        verticalAlignment = Alignment.CenterVertically
-                                                    ) {
-                                                        val suffix = if (entry.outOfWindow) " ⚠️" else ""
-                                                        Column(modifier = Modifier.weight(1f)) {
-                                                            if (entry.note != null) {
-                                                                Text(
-                                                                    text = "Note: \"${entry.note}\" at ${entry.time}$suffix",
-                                                                    fontSize = 12.sp,
-                                                                    fontWeight = FontWeight.SemiBold,
-                                                                    color = ThSuccessText
-                                                                )
-                                                            } else {
-                                                                val pointNameText = entry.point?.let { customPointNames[it] ?: String.format("%02d", it) } ?: ""
-                                                                Text(
-                                                                    text = "Point $pointNameText logged at ${entry.time}$suffix",
-                                                                    fontSize = 12.sp,
-                                                                    color = ThTextMain
-                                                                )
-                                                            }
-                                                        }
-
-                                                        Text(
-                                                            text = "Rem",
-                                                            color = ThDangerText,
-                                                            fontWeight = FontWeight.Black,
-                                                            fontSize = 11.sp,
-                                                            modifier = Modifier
-                                                                .clickable { viewModel.removeEntry(entry) }
-                                                                .padding(horizontal = 6.dp, vertical = 2.dp)
-                                                        )
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-
-                        // F. Disclaimer Footer Notes
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Text(
-                            text = "Disclaimer: Local SQLite Room storage. Violations calculated while On Duty. Ensure secure intervals.\n\neagleeyetechsolu@gmail.com © 2026 | 0773554975",
-                            fontSize = 10.sp,
-                            color = ThTextSecondary,
-                            textAlign = TextAlign.Center,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 12.dp)
-                        )
-                    }
-
-                    1 -> { // ================= BACKUP TAB =================
-                        Card(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 6.dp),
-                            colors = CardDefaults.cardColors(containerColor = Color.White),
-                            shape = RoundedCornerShape(24.dp),
-                            border = BorderStroke(1.dp, ThBorderNeutral)
-                        ) {
-                            Column(modifier = Modifier.padding(16.dp)) {
-                                Text(
-                                    text = "Log Maintenance & Backups",
-                                    fontSize = 16.sp,
-                                    fontWeight = FontWeight.Black,
-                                    color = ThPurpleDeep
-                                )
-                                Spacer(modifier = Modifier.height(6.dp))
-                                Text(
-                                    text = "Carry out local clipboard exports or restores.",
-                                    fontSize = 12.sp,
-                                    color = ThTextSecondary
-                                )
-                                Spacer(modifier = Modifier.height(14.dp))
-
-                                // Select & Import File Button
-                                Button(
-                                    onClick = { filePickerLauncher.launch("application/json") },
-                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF06B6D4)), // Cyan accent
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .height(48.dp)
-                                        .testTag("import_file_button"),
-                                    shape = RoundedCornerShape(16.dp)
-                                ) {
-                                    Icon(Icons.Filled.Add, contentDescription = null, tint = Color.White)
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text("Select & Import JSON File", fontWeight = FontWeight.Bold)
-                                }
-
-                                Spacer(modifier = Modifier.height(12.dp))
-                                Divider(color = ThBorderNeutral.copy(alpha = 0.4f))
-                                Spacer(modifier = Modifier.height(12.dp))
-
-                                // Maintenance controls list structured beautifully in a reliable responsive grid
-                                Column(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                    ) {
-                                        Button(
-                                            onClick = {
-                                                scope.launch {
-                                                    val jsonLiteral = viewModel.getExportString("json")
-                                                    pendingExportJson = jsonLiteral
-                                                    createJsonLauncher.launch("patrol_backup.json")
-                                                }
-                                            },
-                                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF8B5CF6)),
-                                            shape = RoundedCornerShape(12.dp),
-                                            modifier = Modifier.weight(1f).height(44.dp)
-                                        ) {
-                                            Text("Save JSON", fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                                        }
-
-                                        Button(
-                                            onClick = {
-                                                scope.launch {
-                                                    val csvLiteral = viewModel.getExportString("csv")
-                                                    shareFile(context, "patrol_export.csv", csvLiteral, "text/csv")
-                                                }
-                                            },
-                                            colors = ButtonDefaults.buttonColors(containerColor = ThSuccessText),
-                                            shape = RoundedCornerShape(12.dp),
-                                            modifier = Modifier.weight(1f).height(44.dp)
-                                        ) {
-                                            Text("Download CSV", fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                                        }
-                                    }
-
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                    ) {
-                                        Button(
-                                            onClick = { viewModel.undoLastAction() },
-                                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF14B8A6)),
-                                            enabled = canUndoState,
-                                            shape = RoundedCornerShape(12.dp),
-                                            modifier = Modifier.weight(1f).height(44.dp)
-                                        ) {
-                                            Text("Undo Action", fontSize = 11.sp)
-                                        }
-
-                                        Button(
-                                            onClick = { viewModel.calculateMonthlyReport() },
-                                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFEC4899)),
-                                            shape = RoundedCornerShape(12.dp),
-                                            modifier = Modifier.weight(1f).height(44.dp)
-                                        ) {
-                                            Text("Monthly Report", fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                                        }
-                                    }
-
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                    ) {
-                                        Button(
-                                            onClick = {
-                                                viewModel.resetLog()
-                                                Toast.makeText(context, "Log cleared! Temporary undo available.", Toast.LENGTH_LONG).show()
-                                            },
-                                            colors = ButtonDefaults.buttonColors(containerColor = ThDangerText),
-                                            shape = RoundedCornerShape(12.dp),
-                                            modifier = Modifier.weight(1f).height(44.dp)
-                                        ) {
-                                            Text("Reset Log", fontSize = 11.sp)
-                                        }
-
-                                        Button(
-                                            onClick = {
-                                                viewModel.undoReset()
-                                                Toast.makeText(context, "Restored last reset successfully!", Toast.LENGTH_SHORT).show()
-                                            },
-                                            enabled = canUndoReset,
-                                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0EA5E9)),
-                                            shape = RoundedCornerShape(12.dp),
-                                            modifier = Modifier.weight(1f).height(44.dp)
-                                        ) {
-                                            Text("Undo Reset", fontSize = 11.sp)
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    2 -> { // ================= SETTINGS TAB =================
-                        Card(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 6.dp),
-                            colors = CardDefaults.cardColors(containerColor = Color.White),
-                            shape = RoundedCornerShape(24.dp),
-                            border = BorderStroke(1.dp, ThBorderNeutral)
-                        ) {
-                            Column(modifier = Modifier.padding(16.dp)) {
-                                Text(
-                                    text = "WhatsApp Alert Settings",
-                                    fontSize = 16.sp,
-                                    fontWeight = FontWeight.Black,
-                                    color = ThPurpleDeep
-                                )
-                                Spacer(modifier = Modifier.height(4.dp))
-                                Text(
-                                    text = "Recipient number for WhatsApp PANIC triggers.",
-                                    fontSize = 12.sp,
-                                    color = ThTextSecondary
-                                )
-                                Spacer(modifier = Modifier.height(14.dp))
-
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    OutlinedTextField(
-                                        value = emergencyInput,
-                                        onValueChange = { emergencyInput = it },
-                                        modifier = Modifier.weight(1.2f),
-                                        placeholder = { Text("+263771234567") },
-                                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
-                                        textStyle = LocalTextStyle.current.copy(fontSize = 13.sp),
-                                        shape = RoundedCornerShape(12.dp),
-                                        colors = OutlinedTextFieldDefaults.colors(
-                                            focusedTextColor = ThTextMain,
-                                            unfocusedTextColor = ThTextMain,
-                                            focusedBorderColor = ThPurpleBrand,
-                                            unfocusedBorderColor = ThBorderNeutral
-                                        ),
-                                        singleLine = true
-                                    )
-                                    Button(
-                                        onClick = {
-                                            viewModel.saveEmergencyNumber(emergencyInput)
-                                            Toast.makeText(context, "Emergency number saved.", Toast.LENGTH_SHORT).show()
-                                        },
-                                        colors = ButtonDefaults.buttonColors(containerColor = ThPurpleBrand),
-                                        shape = RoundedCornerShape(12.dp),
-                                        modifier = Modifier.height(48.dp)
-                                    ) {
-                                        Text("Save", fontWeight = FontWeight.Bold, color = Color.White)
-                                    }
-                                }
-
-                                Spacer(modifier = Modifier.height(20.dp))
-                                Divider(color = ThBorderNeutral.copy(alpha = 0.4f))
-                                Spacer(modifier = Modifier.height(16.dp))
-
-                                Text(
-                                    text = "Active Patrol Points Config",
-                                    fontSize = 14.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = ThTextMain
-                                )
-                                Spacer(modifier = Modifier.height(4.dp))
-                                Text(
-                                    text = "Adjust the active checkpoints list below.",
-                                    fontSize = 12.sp,
-                                    color = ThTextSecondary
-                                )
-                                Spacer(modifier = Modifier.height(12.dp))
 
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
                                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
-                                    Button(
-                                        onClick = { viewModel.addPointConfig() },
-                                        modifier = Modifier
-                                            .weight(1f)
-                                            .height(44.dp)
-                                            .testTag("add_point_btn"),
-                                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFEADDFF)),
-                                        shape = RoundedCornerShape(12.dp),
-                                        border = BorderStroke(1.dp, ThBorderNeutral)
+                                    OutlinedButton(
+                                        onClick = {
+                                            viewModel.logEmergency(selectedCategory, emergencyNotesInput)
+                                            showEmergencyDialog = false
+                                            
+                                            val intent = Intent(Intent.ACTION_DIAL).apply {
+                                                data = Uri.parse("tel:${viewModel.prefs.emergencyNumber}")
+                                            }
+                                            context.startActivity(intent)
+                                            emergencyNotesInput = ""
+                                        },
+                                        modifier = Modifier.weight(1.2f).height(38.dp),
+                                        colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFFECACA)),
+                                        border = BorderStroke(1.dp, Color(0xFF991B1B))
                                     ) {
-                                        Text("+ Add Point", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = ThPurpleBrand)
+                                        Text("CALL HOTLINE", fontSize = 10.sp, fontWeight = FontWeight.Bold)
                                     }
-                                    Button(
-                                        onClick = { viewModel.removePointConfig() },
-                                        modifier = Modifier
-                                            .weight(1f)
-                                            .height(44.dp)
-                                            .testTag("remove_point_btn"),
-                                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFEEBEB)),
-                                        shape = RoundedCornerShape(12.dp),
-                                        border = BorderStroke(1.dp, ThBorderNeutral)
+
+                                    OutlinedButton(
+                                        onClick = {
+                                            showEmergencyDialog = false
+                                            emergencyNotesInput = ""
+                                        },
+                                        modifier = Modifier.weight(0.8f).height(38.dp),
+                                        colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF9CA3AF)),
+                                        border = BorderStroke(1.dp, Color(0xFF4B5563))
                                     ) {
-                                        Text("- Remove Last", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = ThDangerText)
+                                        Text("CANCEL", fontSize = 10.sp, fontWeight = FontWeight.Bold)
                                     }
                                 }
+                            }
+                        }
+                    }
+                }
+            }      }
 
-                                Spacer(modifier = Modifier.height(14.dp))
+            // Compliance report display dialog
+            if (showReportDialog && complianceReport != null) {
+                val rep = complianceReport!!
+                Dialog(onDismissRequest = { showReportDialog = false }) {
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        colors = CardDefaults.cardColors(containerColor = CardSurface),
+                        border = BorderStroke(1.dp, BorderColor)
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(
+                                text = "MONTHLY COMPLIANCE REPORT",
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Black,
+                                color = CustomNeonCyan
+                            )
+                            Spacer(modifier = Modifier.height(12.dp))
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text("Shift Sessions Starts:", fontSize = 12.sp, color = TextSecondary)
+                                Text("${rep.totalStarts}", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = BrightWhite)
+                            }
+                            Spacer(modifier = Modifier.height(6.dp))
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text("Checkpoints Tagged:", fontSize = 12.sp, color = TextSecondary)
+                                Text("${rep.totalCheckpoints}", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = CustomGreen)
+                            }
+                            Spacer(modifier = Modifier.height(6.dp))
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text("Missed Guard Checks:", fontSize = 12.sp, color = TextSecondary)
+                                Text("${rep.totalMissed}", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = CustomRed)
+                            }
+                            Spacer(modifier = Modifier.height(6.dp))
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text("Emergencies Actioned:", fontSize = 12.sp, color = TextSecondary)
+                                Text("${rep.totalEmergencies}", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = CustomAmber)
+                            }
+                            Spacer(modifier = Modifier.height(10.dp))
+                            Divider(color = BorderColor, thickness = 1.dp)
+                            Spacer(modifier = Modifier.height(10.dp))
+
+                            Text(
+                                text = "OVERALL COMPLIANCE",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Black,
+                                color = TextSecondary
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = "${rep.compliancePercent}%",
+                                fontSize = 32.sp,
+                                fontWeight = FontWeight.Black,
+                                color = if (rep.compliancePercent >= 85) CustomGreen else if (rep.compliancePercent >= 60) CustomAmber else CustomRed
+                            )
+
+                            Spacer(modifier = Modifier.height(16.dp))
+
+                            Button(
+                                onClick = { showReportDialog = false },
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = ButtonDefaults.buttonColors(containerColor = CustomNeonCyan)
+                            ) {
+                                Text("DISMISS", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = ScreenBackground)
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Alarm activation alert modal popup
+            alarmSoundActive?.let { alarmName ->
+                Dialog(onDismissRequest = { viewModel.stopAlarm() }) {
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        colors = CardDefaults.cardColors(containerColor = CardSurface),
+                        border = BorderStroke(2.dp, CustomRed),
+                        shape = RoundedCornerShape(16.dp)
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(24.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Warning,
+                                contentDescription = "Alarm triggered icon",
+                                tint = CustomRed,
+                                modifier = Modifier.size(56.dp)
+                            )
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Text(
+                                text = "ATTENTION REQUIRED",
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Black,
+                                color = TextPrimary
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = "An active patrol alert has been detected:\n$alarmName",
+                                fontSize = 13.sp,
+                                color = TextSecondary,
+                                textAlign = TextAlign.Center
+                            )
+                            Spacer(modifier = Modifier.height(24.dp))
+                            Button(
+                                onClick = { viewModel.stopAlarm() },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(52.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = CustomRed),
+                                shape = RoundedCornerShape(12.dp)
+                            ) {
                                 Text(
-                                    text = "Active codes count: ${activePoints.size}",
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = ThTextSecondary
+                                    text = "SILENCE & DISMISS ALARM",
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Black,
+                                    color = Color.White
                                 )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
 
-                                if (activePoints.isNotEmpty()) {
-                                    Spacer(modifier = Modifier.height(14.dp))
-                                    Divider(color = ThBorderNeutral.copy(alpha = 0.3f))
-                                    Spacer(modifier = Modifier.height(12.dp))
+@Composable
+fun DashboardScreen(
+    viewModel: PatrolViewModel,
+    isOnDuty: Boolean,
+    timerTick: Long,
+    nextDeadlineTime: Long,
+    secondsRemaining: Long,
+    missingPoints: List<String>,
+    customCheckpoints: List<String>,
+    onLogPointClick: (String) -> Unit,
+    onToggleDuty: () -> Unit,
+    onTriggerEmergency: () -> Unit
+) {
+    val dateString = SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date(timerTick))
+    val calendarString = SimpleDateFormat("EEE, dd MMM yyyy", Locale.getDefault()).format(Date(timerTick))
+    val isPreferredActive = viewModel.isPreferredActive()
+
+    val checkpointEntries = remember(viewModel.patrolEntries.collectAsState().value) {
+        viewModel.patrolEntries.value.filter { it.status == "CHECKPOINT" }.take(4)
+    }
+
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(14.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp)
+    ) {
+        // App Identity Header Card
+        item {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = CardSurface),
+                border = BorderStroke(1.dp, BorderColor),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(14.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Image(
+                        painter = painterResource(id = R.drawable.logo_patrologger),
+                        contentDescription = "Patrologger logo",
+                        modifier = Modifier
+                            .size(54.dp)
+                            .clip(CircleShape)
+                            .border(2.dp, CustomNeonCyan, CircleShape)
+                    )
+                    Spacer(modifier = Modifier.width(14.dp))
+                    Column {
+                        Text(
+                            text = "PATROLOGGER",
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Black,
+                            color = CustomNeonCyan,
+                            letterSpacing = 1.sp
+                        )
+                        Text(
+                            text = "Smart Guard Patrol & Verification",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = TextSecondary
+                        )
+                    }
+                }
+            }
+        }
+
+        // 'On Patrol' vs 'Off Duty' Status Indicator Banner
+        item {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = if (isOnDuty) CustomGreen.copy(alpha = 0.12f) else BorderColor.copy(alpha = 0.15f)
+                ),
+                border = BorderStroke(1.5.dp, if (isOnDuty) CustomGreen else BorderColor),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(12.dp),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(10.dp)
+                            .background(if (isOnDuty) CustomGreen else Color.Gray, CircleShape)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = if (isOnDuty) "STATE: ON PATROL (ACTIVE SHIFT)" else "STATE: OFF DUTY (STANDBY SYSTEM)",
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Black,
+                        color = if (isOnDuty) CustomGreen else TextPrimary,
+                        letterSpacing = 0.5.sp
+                    )
+                }
+            }
+        }
+
+        // Core Clock & Duty Banner Section
+        item {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = CardSurface),
+                border = BorderStroke(1.dp, BorderColor)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(14.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = calendarString,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = TextSecondary
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = dateString,
+                        fontSize = 30.sp,
+                        fontWeight = FontWeight.Black,
+                        color = CustomNeonCyan,
+                        letterSpacing = 1.sp
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = if (isPreferredActive) "🟢 Preferred Window Active (:10 - :50 of every hour)"
+                               else "🟡 Off-Peak Window Active (:51 - :09 of every hour)",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = if (isPreferredActive) CustomGreen else CustomAmber
+                    )
+                }
+            }
+        }
+
+        // Today's Patrol Summary Dashboard Component
+        item {
+            val completedToday = remember(viewModel.patrolEntries.collectAsState().value) {
+                val todayStart = Calendar.getInstance().apply {
+                    set(Calendar.HOUR_OF_DAY, 0)
+                    set(Calendar.MINUTE, 0)
+                    set(Calendar.SECOND, 0)
+                    set(Calendar.MILLISECOND, 0)
+                }.timeInMillis
+                viewModel.patrolEntries.value.filter { it.status == "CHECKPOINT" && it.timestamp >= todayStart }.size
+            }
+
+            val violationsToday = remember(viewModel.patrolEntries.collectAsState().value) {
+                val todayStart = Calendar.getInstance().apply {
+                    set(Calendar.HOUR_OF_DAY, 0)
+                    set(Calendar.MINUTE, 0)
+                    set(Calendar.SECOND, 0)
+                    set(Calendar.MILLISECOND, 0)
+                }.timeInMillis
+                viewModel.patrolEntries.value.filter { (it.status == "MISSED" || it.status == "EMERGENCY") && it.timestamp >= todayStart }.size
+            }
+
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("dashboard_summary_card"),
+                colors = CardDefaults.cardColors(containerColor = CardSurface),
+                border = BorderStroke(1.dp, BorderColor),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(14.dp)
+                ) {
+                    Text(
+                        text = "TODAY'S DASHBOARD OVERVIEW",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Black,
+                        color = CustomNeonCyan,
+                        letterSpacing = 0.5.sp
+                    )
+                    Spacer(modifier = Modifier.height(10.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        // Stat 1: Completed Patrols Today
+                        Card(
+                            modifier = Modifier
+                                .weight(1.0f)
+                                .testTag("completed_today_stat_card"),
+                            colors = CardDefaults.cardColors(
+                                containerColor = if (completedToday > 0) CustomGreen.copy(alpha = 0.08f) else Color.Transparent
+                            ),
+                            border = BorderStroke(1.dp, if (completedToday > 0) CustomGreen.copy(alpha = 0.4f) else BorderColor),
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(8.dp)
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(
+                                        imageVector = Icons.Default.Check,
+                                        contentDescription = "Completed Today",
+                                        tint = if (completedToday > 0) CustomGreen else TextSecondary,
+                                        modifier = Modifier.size(13.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(3.dp))
                                     Text(
-                                        text = "Custom Point Label Overrides",
-                                        fontSize = 14.sp,
+                                        text = "COMPLETED",
+                                        fontSize = 9.sp,
                                         fontWeight = FontWeight.Bold,
-                                        color = ThPurpleDeep
+                                        color = TextSecondary
                                     )
+                                }
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = "$completedToday",
+                                    fontSize = 20.sp,
+                                    fontWeight = FontWeight.Black,
+                                    color = if (completedToday > 0) CustomGreen else TextPrimary
+                                )
+                                Spacer(modifier = Modifier.height(1.dp))
+                                Text(
+                                    text = if (completedToday == 1) "1 Checkpoint" else "$completedToday Points",
+                                    fontSize = 8.sp,
+                                    color = TextSecondary,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
+                        }
+
+                        // Stat 2: Violations Today
+                        Card(
+                            modifier = Modifier
+                                .weight(1.0f)
+                                .testTag("violations_today_stat_card"),
+                            colors = CardDefaults.cardColors(
+                                containerColor = if (violationsToday > 0) CustomRed.copy(alpha = 0.08f) else Color.Transparent
+                            ),
+                            border = BorderStroke(1.dp, if (violationsToday > 0) CustomRed.copy(alpha = 0.4f) else BorderColor),
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(8.dp)
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(
+                                        imageVector = Icons.Default.Warning,
+                                        contentDescription = "Violations Today",
+                                        tint = if (violationsToday > 0) CustomRed else TextSecondary,
+                                        modifier = Modifier.size(13.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(3.dp))
                                     Text(
-                                        text = "Type text labels below to rename default numbering.",
-                                        fontSize = 11.sp,
-                                        color = ThTextSecondary
+                                        text = "VIOLATIONS",
+                                        fontSize = 9.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = TextSecondary
                                     )
-                                    Spacer(modifier = Modifier.height(8.dp))
+                                }
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = "$violationsToday",
+                                    fontSize = 20.sp,
+                                    fontWeight = FontWeight.Black,
+                                    color = if (violationsToday > 0) CustomRed else TextPrimary
+                                )
+                                Spacer(modifier = Modifier.height(1.dp))
+                                Text(
+                                    text = if (violationsToday == 1) "1 Overdue point" else "$violationsToday Overdue/SOS",
+                                    fontSize = 8.sp,
+                                    color = TextSecondary,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
+                        }
 
-                                    activePoints.sorted().forEach { pNum ->
-                                        val currentName = customPointNames[pNum] ?: ""
-                                        var fieldVal by remember(pNum) { mutableStateOf(currentName) }
+                        // Stat 3: Next Scheduled Checkpoint / Deadline countdown
+                        Card(
+                            modifier = Modifier
+                                .weight(1.1f)
+                                .testTag("next_scheduled_stat_card"),
+                            colors = CardDefaults.cardColors(
+                                containerColor = if (isOnDuty && secondsRemaining < 60) CustomRed.copy(alpha = 0.08f)
+                                                 else if (isOnDuty) CustomNeonCyan.copy(alpha = 0.05f)
+                                                 else Color.Transparent
+                            ),
+                            border = BorderStroke(
+                                width = 1.dp,
+                                color = if (isOnDuty && secondsRemaining < 60) CustomRed.copy(alpha = 0.5f)
+                                        else if (isOnDuty) CustomNeonCyan.copy(alpha = 0.3f)
+                                        else BorderColor
+                            ),
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(8.dp)
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(
+                                        imageVector = Icons.Default.Refresh,
+                                        contentDescription = "Next deadline",
+                                        tint = if (isOnDuty) CustomNeonCyan else TextSecondary,
+                                        modifier = Modifier.size(13.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(3.dp))
+                                    Text(
+                                        text = "NEXT ROUND",
+                                        fontSize = 9.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = TextSecondary
+                                    )
+                                }
+                                Spacer(modifier = Modifier.height(4.dp))
+                                if (isOnDuty) {
+                                    val m = secondsRemaining / 60
+                                    val s = secondsRemaining % 60
+                                    val countdownStr = String.format(Locale.getDefault(), "%02d:%02d", m, s)
+                                    
+                                    val formattedNextHour = if (nextDeadlineTime > 0) {
+                                        SimpleDateFormat("HH:00", Locale.getDefault()).format(Date(nextDeadlineTime))
+                                    } else {
+                                        "..."
+                                    }
 
-                                        LaunchedEffect(currentName) {
-                                            if (fieldVal != currentName) {
-                                                fieldVal = currentName
-                                            }
-                                        }
+                                    Text(
+                                        text = countdownStr,
+                                        fontSize = 20.sp,
+                                        fontWeight = FontWeight.Black,
+                                        color = if (secondsRemaining < 60) CustomRed else CustomAmber
+                                    )
+                                    Spacer(modifier = Modifier.height(1.dp))
+                                    Text(
+                                        text = "Due at $formattedNextHour",
+                                        fontSize = 8.sp,
+                                        color = TextSecondary,
+                                        fontWeight = FontWeight.Medium
+                                    )
+                                } else {
+                                    Text(
+                                        text = "STANDBY",
+                                        fontSize = 20.sp,
+                                        fontWeight = FontWeight.Black,
+                                        color = TextSecondary
+                                    )
+                                    Spacer(modifier = Modifier.height(1.dp))
+                                    Text(
+                                        text = "Inactive",
+                                        fontSize = 8.sp,
+                                        color = TextSecondary,
+                                        fontWeight = FontWeight.Medium
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
 
-                                        OutlinedTextField(
-                                            value = fieldVal,
-                                            onValueChange = { newValue ->
-                                                fieldVal = newValue
-                                                viewModel.saveCustomPointName(pNum, newValue)
-                                            },
+        // Action controls (On/Off Duty & Emergency Panic)
+        item {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                // Toggle Duty button
+                Button(
+                    onClick = onToggleDuty,
+                    modifier = Modifier
+                        .weight(1.3f)
+                        .height(48.dp)
+                        .testTag("toggle_duty_button"),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (isOnDuty) CustomRed else CustomTeal
+                    ),
+                    shape = RoundedCornerShape(10.dp)
+                ) {
+                    Icon(
+                        imageVector = if (isOnDuty) Icons.Default.Close else Icons.Default.PlayArrow,
+                        contentDescription = "Duty active indicator"
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = if (isOnDuty) "OFF DUTY" else "START SHIFT",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Black,
+                        color = BrightWhite
+                    )
+                }
+
+                // Emergency Panic Hotline Button
+                Button(
+                    onClick = onTriggerEmergency,
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(48.dp)
+                        .testTag("panic_button"),
+                    colors = ButtonDefaults.buttonColors(containerColor = CustomAmber),
+                    shape = RoundedCornerShape(10.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Phone,
+                        contentDescription = "Emergency panic hotline icon"
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = "PANIC / SOS",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Black,
+                        color = BrightWhite
+                    )
+                }
+            }
+        }
+
+        // Real-time Countdown Stopwatch Panel (Only shown onDuty)
+        if (isOnDuty) {
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = CardSurface),
+                    border = BorderStroke(1.dp, if (secondsRemaining < 60) CustomRed else BorderColor)
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(12.dp)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Refresh,
+                                contentDescription = "Timer countdown icon",
+                                tint = if (secondsRemaining < 60) CustomRed else CustomNeonCyan,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "NEXT COMPLIANCE CHECK DEADLINE",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Black,
+                                color = if (secondsRemaining < 60) CustomRed else CustomNeonCyan
+                            )
+                        }
+
+                        val formattedDeadline = if (nextDeadlineTime > 0) {
+                            SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date(nextDeadlineTime))
+                        } else {
+                            "Syncing..."
+                        }
+
+                        Spacer(modifier = Modifier.height(4.dp))
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.Bottom
+                        ) {
+                            Text(
+                                text = formattedDeadline,
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = BrightWhite
+                            )
+
+                            val m = secondsRemaining / 60
+                            val s = secondsRemaining % 60
+                            val countdownStr = String.format(Locale.getDefault(), "%02d:%02d", m, s)
+
+                            Text(
+                                text = "T-Minus: $countdownStr",
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = if (secondsRemaining < 60) CustomRed else CustomAmber
+                            )
+                        }
+
+                        // Display overdue points list
+                        if (missingPoints.isNotEmpty()) {
+                            Spacer(modifier = Modifier.height(10.dp))
+                            Text(
+                                text = "⚠️ MISSED POINTS FOR THIS HOUR ONLY:",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Black,
+                                color = CustomRed
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Column(
+                                modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
+                                verticalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                missingPoints.forEach { point ->
+                                    Text(
+                                        text = "• $point (Missed Check-in)",
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Medium,
+                                        color = Color(0xFFFCA5A5)
+                                    )
+                                }
+                            }
+                        } else {
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = "✨ All points are successfully tagged for this hour!",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = CustomGreen
+                            )
+                        }
+                    }
+                }
+            }
+
+            // Quick log buttons for active checkpoints
+            item {
+                Text(
+                    text = "TAP POINT TO LOG CHECK-IN",
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Black,
+                    color = TextSecondary,
+                    modifier = Modifier.padding(vertical = 2.dp)
+                )
+            }
+
+            if (customCheckpoints.isEmpty()) {
+                item {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(CardSurface, RoundedCornerShape(10.dp))
+                            .padding(16.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "No active checkpoints configured.\nGo to Settings to add points.",
+                            textAlign = TextAlign.Center,
+                            fontSize = 12.sp,
+                            color = TextSecondary
+                        )
+                    }
+                }
+            } else {
+                item {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        customCheckpoints.forEach { point ->
+                            val canLog = viewModel.canLogCheckpoint(point)
+                            Card(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable(enabled = true) {
+                                        onLogPointClick(point)
+                                    },
+                                colors = CardDefaults.cardColors(
+                                    containerColor = if (canLog) CardSurface else Color(0xFF1E293B).copy(alpha = 0.5f)
+                                ),
+                                border = BorderStroke(
+                                    width = 1.dp,
+                                    color = if (canLog) BorderColor else Color(0xFF334155).copy(alpha = 0.3f)
+                                )
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(12.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(
+                                            imageVector = if (canLog) Icons.Default.LocationOn else Icons.Default.Lock,
+                                            contentDescription = "Location tracker icon",
+                                            tint = if (canLog) CustomNeonCyan else TextSecondary,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text(
+                                            text = point,
+                                            fontSize = 13.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = if (canLog) BrightWhite else TextSecondary
+                                        )
+                                    }
+
+                                    Box(
+                                        modifier = Modifier
+                                            .background(
+                                                color = if (canLog) CustomNeonCyan.copy(alpha = 0.12f) else Color.DarkGray.copy(alpha = 0.2f),
+                                                shape = RoundedCornerShape(6.dp)
+                                            )
+                                            .padding(horizontal = 8.dp, vertical = 3.dp)
+                                    ) {
+                                        Text(
+                                            text = if (canLog) "READY" else "TAGGED (HR)",
+                                            fontSize = 9.sp,
+                                            fontWeight = FontWeight.Black,
+                                            color = if (canLog) CustomNeonCyan else TextSecondary
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        } else {
+            // Off duty informational card
+            item {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(CardSurface, RoundedCornerShape(12.dp))
+                        .border(1.dp, BorderColor, RoundedCornerShape(12.dp))
+                        .padding(18.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Icon(
+                            imageVector = Icons.Default.Info,
+                            contentDescription = "Shift status off-duty banner icon",
+                            tint = CustomTeal,
+                            modifier = Modifier.size(28.dp)
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "GUARD SYSTEM CURRENTLY STANDBY",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = BrightWhite
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "Press START SHIFT above to begin real-time patrol stopwatch monitoring.",
+                            fontSize = 11.sp,
+                            color = TextSecondary,
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                }
+            }
+        }
+
+        // List view displaying the latest 4 recorded checkpoints
+        item {
+            Text(
+                text = "LATEST 4 RECORDED CHECKPOINTS",
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Black,
+                color = CustomNeonCyan,
+                modifier = Modifier.padding(top = 4.dp, bottom = 2.dp)
+            )
+        }
+
+        if (checkpointEntries.isEmpty()) {
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = CardSurface),
+                    border = BorderStroke(1.dp, BorderColor),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Box(modifier = Modifier.fillMaxWidth().padding(12.dp), contentAlignment = Alignment.Center) {
+                        Text(
+                            text = "No checkpoints recorded yet for this shift.",
+                            fontSize = 13.sp,
+                            color = TextSecondary
+                        )
+                    }
+                }
+            }
+        } else {
+            item {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    checkpointEntries.forEach { entry ->
+                        val timeStr = SimpleDateFormat("HH:mm:ss (EEE)", Locale.getDefault()).format(Date(entry.timestamp))
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.cardColors(containerColor = CardSurface),
+                            border = BorderStroke(1.dp, BorderColor),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(10.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(
+                                        imageVector = Icons.Default.LocationOn,
+                                        contentDescription = null,
+                                        tint = CustomNeonCyan,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
+                                        text = entry.checkpoint,
+                                        fontSize = 13.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = BrightWhite
+                                    )
+                                }
+                                Text(
+                                    text = timeStr,
+                                    fontSize = 13.sp,
+                                    color = TextSecondary
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Observation Notes Input Card (not in patrol logs but in exact hour group)
+        item {
+            var observationInput by remember { mutableStateOf("") }
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = CardSurface),
+                border = BorderStroke(1.dp, BorderColor),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Column(modifier = Modifier.padding(12.dp)) {
+                    Text(
+                        text = "ADD SHIFT OBSERVATION",
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Black,
+                        color = CustomNeonCyan
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "Record notes of active observations. They won't affect patrol compliance statistics but will be logged in the exact hour group.",
+                        fontSize = 11.sp,
+                        color = TextSecondary
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    OutlinedTextField(
+                        value = observationInput,
+                        onValueChange = { observationInput = it },
+                        placeholder = { Text("Describe security observation...", fontSize = 13.sp) },
+                        textStyle = LocalTextStyle.current.copy(fontSize = 13.sp),
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = CustomNeonCyan,
+                            unfocusedBorderColor = BorderColor,
+                            focusedTextColor = BrightWhite,
+                            unfocusedTextColor = BrightWhite
+                        )
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Button(
+                        onClick = {
+                            if (observationInput.isNotBlank()) {
+                                viewModel.logObservation(observationInput)
+                                observationInput = ""
+                            }
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = CustomNeonCyan),
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Text("LOG OBSERVATION", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = ScreenBackground)
+                    }
+                }
+            }
+        }
+
+        // Standard Support Footer at the end of the Dashboard screen
+        item {
+            Spacer(modifier = Modifier.height(10.dp))
+            Divider(color = BorderColor, thickness = 1.dp)
+            Spacer(modifier = Modifier.height(8.dp))
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = "EAGLEEYE DISPATCH SUPPORT",
+                    color = TextSecondary,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "eagleeyetechsolu@gmail.com",
+                    color = CustomNeonCyan,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = "Direct Hotline: ${viewModel.prefs.emergencyNumber}",
+                    color = CustomNeonCyan,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "© 2026 EagleEye Technical Solutions | Ver 2.5",
+                    color = TextSecondary,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Medium
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun LogHistoryScreen(
+    patrolEntries: List<PatrolEntry>,
+    onDeleteLog: (Int) -> Unit,
+    onExportJson: () -> Unit,
+    onImportJson: () -> Unit,
+    onResetDb: () -> Unit,
+    onCalculateReport: () -> Unit
+) {
+    val groupedLogs = remember(patrolEntries) {
+        patrolEntries.groupBy { entry ->
+            val dayKey = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date(entry.timestamp))
+            val dayLabel = SimpleDateFormat("EEEE, MMM dd, yyyy", Locale.getDefault()).format(Date(entry.timestamp))
+            val hourKey = SimpleDateFormat("HH", Locale.getDefault()).format(Date(entry.timestamp))
+            val hourLabel = SimpleDateFormat("HH:00", Locale.getDefault()).format(Date(entry.timestamp))
+            Pair(Pair(dayKey, hourKey), Pair(dayLabel, hourLabel))
+        }.mapValues { (_, entries) ->
+            entries.sortedByDescending { it.timestamp }
+        }.toList().sortedWith { a, b ->
+            val compDay = b.first.first.first.compareTo(a.first.first.first)
+            if (compDay != 0) compDay else b.first.first.second.compareTo(a.first.first.second)
+        }
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(14.dp)
+    ) {
+        // Log Actions Bar
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 12.dp),
+            colors = CardDefaults.cardColors(containerColor = CardSurface),
+            border = BorderStroke(1.dp, BorderColor)
+        ) {
+            Column(modifier = Modifier.padding(10.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Button(
+                        onClick = onCalculateReport,
+                        colors = ButtonDefaults.buttonColors(containerColor = CustomTeal),
+                        modifier = Modifier
+                            .weight(1f)
+                            .testTag("report_button"),
+                        contentPadding = PaddingValues(horizontal = 2.dp, vertical = 4.dp),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Icon(imageVector = Icons.Default.Info, contentDescription = "Assessment icon", modifier = Modifier.size(14.dp))
+                        Spacer(modifier = Modifier.width(3.dp))
+                        Text("REPORT", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    }
+
+                    Button(
+                        onClick = onExportJson,
+                        colors = ButtonDefaults.buttonColors(containerColor = CustomNeonCyan),
+                        modifier = Modifier
+                            .weight(1f)
+                            .testTag("export_button"),
+                        contentPadding = PaddingValues(horizontal = 2.dp, vertical = 4.dp),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Icon(imageVector = Icons.Default.Check, contentDescription = "Save icon", modifier = Modifier.size(14.dp), tint = ScreenBackground)
+                        Spacer(modifier = Modifier.width(3.dp))
+                        Text("EXPORT", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = ScreenBackground)
+                    }
+
+                    Button(
+                        onClick = onImportJson,
+                        colors = ButtonDefaults.buttonColors(containerColor = CustomPurple),
+                        modifier = Modifier
+                            .weight(1f)
+                            .testTag("import_button"),
+                        contentPadding = PaddingValues(horizontal = 2.dp, vertical = 4.dp),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Icon(imageVector = Icons.Default.Share, contentDescription = "Backup restore", modifier = Modifier.size(14.dp))
+                        Spacer(modifier = Modifier.width(3.dp))
+                        Text("RESTORE", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    OutlinedButton(
+                        onClick = onResetDb,
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = CustomRed),
+                        border = BorderStroke(1.dp, CustomRed.copy(alpha = 0.5f)),
+                        shape = RoundedCornerShape(8.dp),
+                        modifier = Modifier.fillMaxWidth(0.6f)
+                    ) {
+                        Icon(imageVector = Icons.Default.Delete, contentDescription = "Reset", modifier = Modifier.size(14.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("RESET HISTORY", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
+        }
+
+        // Log Items List
+        Text(
+            text = "SHIFT RECORDS LOGS (GROUPED BY DATE & HOUR)",
+            fontSize = 11.sp,
+            fontWeight = FontWeight.Black,
+            color = TextSecondary,
+            modifier = Modifier.padding(bottom = 6.dp)
+        )
+
+        if (groupedLogs.isEmpty()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+                    .background(CardSurface, RoundedCornerShape(12.dp))
+                    .padding(24.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "No patrol logs recorded.\nChange shift mode or log checkpoints.",
+                    textAlign = TextAlign.Center,
+                    fontSize = 12.sp,
+                    color = TextSecondary
+                )
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                groupedLogs.forEach { group ->
+                    val (dayLabel, hourLabel) = group.first.second
+                    val entries = group.second
+                    
+                    item {
+                        Card(
+                            modifier = Modifier.fillMaxWidth().padding(top = 8.dp, bottom = 2.dp),
+                            colors = CardDefaults.cardColors(containerColor = CardSurface.copy(alpha = 0.5f)),
+                            border = BorderStroke(1.dp, BorderColor),
+                            shape = RoundedCornerShape(6.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth().padding(8.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(
+                                        imageVector = Icons.Default.Info,
+                                        contentDescription = null,
+                                        tint = CustomNeonCyan,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(
+                                        text = dayLabel,
+                                        fontSize = 13.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = BrightWhite
+                                    )
+                                }
+                                Box(
+                                    modifier = Modifier
+                                        .background(CustomNeonCyan.copy(alpha = 0.15f), RoundedCornerShape(4.dp))
+                                        .padding(horizontal = 6.dp, vertical = 2.dp)
+                                ) {
+                                    Text(
+                                        text = hourLabel,
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Black,
+                                        color = CustomNeonCyan
+                                    )
+                                }
+                            }
+                        }
+                    }
+                    
+                    items(entries) { item ->
+                        val sdf = SimpleDateFormat("HH:mm:ss", Locale.getDefault())
+                        val timeStr = sdf.format(Date(item.timestamp))
+
+                        val (statusColor, statusIcon) = when (item.status) {
+                            "START" -> Pair(CustomGreen, Icons.Default.PlayArrow)
+                            "FINISH" -> Pair(CustomAmber, Icons.Default.Close)
+                            "EMERGENCY" -> Pair(CustomRed, Icons.Default.Warning)
+                            "MISSED" -> Pair(CustomRed, Icons.Default.Close)
+                            "OBSERVATION" -> Pair(CustomPurple, Icons.Default.Edit)
+                            else -> Pair(CustomNeonCyan, Icons.Default.Done)
+                        }
+
+                        val isViolation = item.status == "MISSED" || item.status == "EMERGENCY"
+
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.cardColors(
+                                containerColor = if (isViolation) Color(0xFF2E1919) else if (item.status == "OBSERVATION") Color(0xFF1E192E) else CardSurface
+                            ),
+                            border = BorderStroke(
+                                width = 1.dp,
+                                color = if (isViolation) CustomRed else if (item.status == "OBSERVATION") CustomPurple else BorderColor
+                            ),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(10.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(32.dp)
+                                        .background(statusColor.copy(alpha = 0.15f), RoundedCornerShape(50)),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = statusIcon,
+                                        contentDescription = "Status logo descriptor",
+                                        tint = statusColor,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                }
+
+                                Spacer(modifier = Modifier.width(10.dp))
+
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text(
+                                            text = item.checkpoint,
+                                            fontSize = 13.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = if (item.status == "OBSERVATION") Color.White else BrightWhite
+                                        )
+
+                                        Text(
+                                            text = if (item.status == "MISSED") "VIOLATION" else item.status,
+                                            fontSize = 9.sp,
+                                            fontWeight = FontWeight.Black,
+                                            color = statusColor,
                                             modifier = Modifier
-                                                .fillMaxWidth()
-                                                .padding(vertical = 4.dp),
-                                            label = { Text("Point $pNum Custom Name", fontSize = 11.sp) },
-                                            placeholder = { Text(String.format("Point %02d", pNum), fontSize = 12.sp) },
-                                            textStyle = androidx.compose.ui.text.TextStyle.Default.copy(fontSize = 13.sp),
-                                            shape = RoundedCornerShape(12.dp),
-                                            colors = OutlinedTextFieldDefaults.colors(
-                                                focusedTextColor = ThTextMain,
-                                                unfocusedTextColor = ThTextMain,
-                                                focusedBorderColor = ThPurpleBrand,
-                                                unfocusedBorderColor = ThBorderNeutral
-                                             ),
-                                            singleLine = true
+                                                .background(statusColor.copy(alpha = 0.12f), RoundedCornerShape(4.dp))
+                                                .padding(horizontal = 4.dp, vertical = 2.dp)
+                                        )
+                                    }
+
+                                    if (item.notes.isNotBlank()) {
+                                        Spacer(modifier = Modifier.height(2.dp))
+                                        Text(
+                                            text = item.notes,
+                                            fontSize = 13.sp,
+                                            color = if (item.status == "OBSERVATION") Color.White else TextPrimary
+                                        )
+                                    }
+
+                                    if (isViolation) {
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        val valRange = try {
+                                            // Since slots are on precise hours, slotEnd is the timestamp.
+                                            // The hour slot preceding slotEnd is when the violation took place.
+                                            val hourStr = SimpleDateFormat("HH", Locale.getDefault()).format(Date(item.timestamp))
+                                            val hourInt = hourStr.toInt()
+                                            val prevHour = (hourInt - 1 + 24) % 24
+                                            String.format(Locale.getDefault(), "%02d:00 - %02d:00", prevHour, hourInt)
+                                        } catch (e: Exception) {
+                                            SimpleDateFormat("HH:00", Locale.getDefault()).format(Date(item.timestamp))
+                                        }
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            modifier = Modifier
+                                                .background(CustomRed.copy(alpha = 0.15f), RoundedCornerShape(4.dp))
+                                                .padding(horizontal = 6.dp, vertical = 2.dp)
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.Warning,
+                                                contentDescription = null,
+                                                tint = CustomRed,
+                                                modifier = Modifier.size(11.dp)
+                                            )
+                                            Spacer(modifier = Modifier.width(4.dp))
+                                            Text(
+                                                text = "Hour Violated: $valRange",
+                                                fontSize = 10.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = CustomRed
+                                            )
+                                        }
+                                    }
+
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text(
+                                        text = timeStr,
+                                        fontSize = 11.sp,
+                                        color = if (item.status == "OBSERVATION") Color(0xFFC084FC) else TextSecondary
+                                    )
+                                }
+
+                                Spacer(modifier = Modifier.width(6.dp))
+
+                                IconButton(
+                                    onClick = { onDeleteLog(item.id) },
+                                    modifier = Modifier.size(24.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Delete,
+                                        contentDescription = "Delete entry selector icon",
+                                        tint = TextSecondary,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun SettingsScreen(
+    viewModel: PatrolViewModel,
+    customPoints: List<String>,
+    onAddCheckpoint: (String) -> Unit,
+    onRemoveCheckpoint: (String) -> Unit
+) {
+    var checkPointNameInput by remember { mutableStateOf("") }
+
+    var intervalInput by remember { mutableStateOf(viewModel.prefs.patrolInterval.toString()) }
+    var startHourInput by remember { mutableStateOf(viewModel.prefs.startHour.toString()) }
+    var endHourInput by remember { mutableStateOf(viewModel.prefs.endHour.toString()) }
+    var emergencyContactInput by remember { mutableStateOf(viewModel.prefs.emergencyNumber) }
+    var alarmVolumeInput by remember { mutableStateOf(viewModel.prefs.alarmVolume / 100f) }
+
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(14.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp)
+    ) {
+        // Section A: Customizable Checkpoints Points Manager
+        item {
+            Text(
+                text = "MANAGE PATROL CHECKPOINTS",
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Black,
+                color = CustomNeonCyan,
+                modifier = Modifier.padding(bottom = 2.dp)
+            )
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = CardSurface),
+                border = BorderStroke(1.dp, BorderColor)
+            ) {
+                Column(modifier = Modifier.padding(12.dp)) {
+                    Text(
+                        text = "Customize active locations. Guards must check-in each of these within the custom interval to avoid missed penalties.",
+                        fontSize = 11.sp,
+                        color = TextSecondary
+                    )
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    // Edit Checkpoint Add bar
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        OutlinedTextField(
+                            value = checkPointNameInput,
+                            onValueChange = { checkPointNameInput = it },
+                            label = { Text("New point (e.g., Gate C)", fontSize = 11.sp) },
+                            textStyle = LocalTextStyle.current.copy(fontSize = 12.sp),
+                            singleLine = true,
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(54.dp),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = CustomNeonCyan,
+                                unfocusedBorderColor = BorderColor,
+                                focusedTextColor = BrightWhite,
+                                unfocusedTextColor = BrightWhite
+                            )
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Button(
+                            onClick = {
+                                if (checkPointNameInput.isNotBlank()) {
+                                    onAddCheckpoint(checkPointNameInput)
+                                    checkPointNameInput = ""
+                                }
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = CustomNeonCyan),
+                            shape = RoundedCornerShape(8.dp),
+                            modifier = Modifier.height(48.dp)
+                        ) {
+                            Text("ADD", fontSize = 11.sp, color = ScreenBackground, fontWeight = FontWeight.Black)
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Divider(color = BorderColor, thickness = 1.dp)
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    if (customPoints.isEmpty()) {
+                        Text(
+                            text = "No checkpoints configured currently.",
+                            color = TextSecondary,
+                            fontSize = 11.sp,
+                            modifier = Modifier.padding(vertical = 4.dp)
+                        )
+                    } else {
+                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            customPoints.forEach { point ->
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .background(ScreenBackground, RoundedCornerShape(6.dp))
+                                        .padding(horizontal = 8.dp, vertical = 4.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text(
+                                        text = point,
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Medium,
+                                        color = BrightWhite
+                                    )
+                                    IconButton(
+                                        onClick = { onRemoveCheckpoint(point) },
+                                        modifier = Modifier.size(32.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Delete,
+                                            contentDescription = "Remove location point",
+                                            tint = CustomRed,
+                                            modifier = Modifier.size(16.dp)
                                         )
                                     }
                                 }
@@ -1157,438 +2039,309 @@ fun PatrolTrackerScreen(viewModel: PatrolViewModel) {
             }
         }
 
-        // 2.5. Custom Persistent Footer (Quick Actions & Brand Status)
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 4.dp),
-            colors = CardDefaults.cardColors(containerColor = Color.White),
-            shape = RoundedCornerShape(16.dp),
-            border = BorderStroke(1.dp, ThBorderNeutral.copy(alpha = 0.5f)),
-            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 12.dp, vertical = 8.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // Left side: Brand/Version & Preferred Status Label
-                Column {
-                    Text(
-                        text = "eagleeyetechsolu@gmail.com © 2026 | 0773554975",
-                        fontSize = 9.sp,
-                        fontWeight = FontWeight.Black,
-                        color = ThPurpleDeep
-                    )
-                    Text(
-                        text = if (isWindowActive) "Preferred reporting window active" else "Outside preferred window",
-                        fontSize = 8.sp,
-                        color = if (isWindowActive) ThSuccessText else ThTextSecondary
-                    )
-                }
+        // Section B: Patrol Frequency Tuning Settings
+        item {
+            Text(
+                text = "PATROL INTERVAL SETTINGS",
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Black,
+                color = CustomNeonCyan,
+                modifier = Modifier.padding(bottom = 2.dp)
+            )
 
-                // Right side: Quick Action Buttons (Undo and Monthly Report)
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    // Quick Undo Button
-                    Button(
-                        onClick = {
-                            viewModel.undoLastAction()
-                            Toast.makeText(context, "Undid last patrol action", Toast.LENGTH_SHORT).show()
-                        },
-                        enabled = canUndoState,
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFF14B8A6),
-                            disabledContainerColor = Color(0xFFE2E8F0)
-                        ),
-                        shape = RoundedCornerShape(8.dp),
-                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
-                        modifier = Modifier
-                            .height(32.dp)
-                            .testTag("footer_undo_button")
-                    ) {
-                        Text(
-                            text = "◀ UNDO", 
-                            fontSize = 10.sp, 
-                            fontWeight = FontWeight.Black,
-                            color = if (canUndoState) Color.White else Color(0xFF94A3B8)
-                        )
-                    }
-
-                    // Quick Monthly Report Button
-                    Button(
-                        onClick = {
-                            viewModel.calculateMonthlyReport()
-                        },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFFEC4899)
-                        ),
-                        shape = RoundedCornerShape(8.dp),
-                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
-                        modifier = Modifier
-                            .height(32.dp)
-                            .testTag("footer_report_button")
-                    ) {
-                        Text("📊 REPORT", fontSize = 10.sp, fontWeight = FontWeight.Black, color = Color.White)
-                    }
-                }
-            }
-        }
-
-        // 3. Static Bottom Navigation Bar (Consistent across all screens)
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(Color(0xFFF3EDF7))
-                .border(BorderStroke(1.dp, ThBorderNeutral.copy(alpha = 0.4f)))
-                .windowInsetsPadding(WindowInsets.navigationBars)
-                .padding(vertical = 8.dp),
-            horizontalArrangement = Arrangement.SpaceAround,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // Tab 0: DASH
-            val isDash = selectedTab == 0
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .clickable { selectedTab = 0 }
-                    .padding(horizontal = 4.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Box(
-                    modifier = Modifier
-                        .width(54.dp)
-                        .height(32.dp)
-                        .background(
-                            color = if (isDash) Color(0xFFEADDFF) else Color.Transparent,
-                            shape = RoundedCornerShape(16.dp)
-                        ),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text("📊", fontSize = 16.sp)
-                }
-                Spacer(modifier = Modifier.height(2.dp))
-                Text(
-                    text = "DASH",
-                    fontSize = 10.sp,
-                    fontWeight = if (isDash) FontWeight.Black else FontWeight.Bold,
-                    color = if (isDash) Color(0xFF21005D) else Color(0xFF49454F)
-                )
-            }
-
-            // Tab 1: BACKUP
-            val isBackup = selectedTab == 1
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .clickable { selectedTab = 1 }
-                    .padding(horizontal = 4.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Box(
-                    modifier = Modifier
-                        .width(54.dp)
-                        .height(32.dp)
-                        .background(
-                            color = if (isBackup) Color(0xFFEADDFF) else Color.Transparent,
-                            shape = RoundedCornerShape(16.dp)
-                        ),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text("💾", fontSize = 16.sp)
-                }
-                Spacer(modifier = Modifier.height(2.dp))
-                Text(
-                    text = "BACKUP",
-                    fontSize = 10.sp,
-                    fontWeight = if (isBackup) FontWeight.Black else FontWeight.Bold,
-                    color = if (isBackup) Color(0xFF21005D) else Color(0xFF49454F)
-                )
-            }
-
-            // Tab 2: SETTINGS
-            val isSettings = selectedTab == 2
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .clickable { selectedTab = 2 }
-                    .padding(horizontal = 4.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Box(
-                    modifier = Modifier
-                        .width(54.dp)
-                        .height(32.dp)
-                        .background(
-                            color = if (isSettings) Color(0xFFEADDFF) else Color.Transparent,
-                            shape = RoundedCornerShape(16.dp)
-                        ),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text("⚙️", fontSize = 16.sp)
-                }
-                Spacer(modifier = Modifier.height(2.dp))
-                Text(
-                    text = "SETTINGS",
-                    fontSize = 10.sp,
-                    fontWeight = if (isSettings) FontWeight.Black else FontWeight.Bold,
-                    color = if (isSettings) Color(0xFF21005D) else Color(0xFF49454F)
-                )
-            }
-        }
-    }
-
-    // Modal Dialog 1: Log confirmation Dialog
-    activeConfirmingPoint?.let { pNum ->
-        val pointNameWord = customPointNames[pNum] ?: pNum.toString()
-        val msg = if (isWindowActive) {
-            "Log Point $pointNameWord now?"
-        } else {
-            "WARNING: Outside preferred window (:10-:50).\n\nLog Point $pointNameWord anyway?"
-        }
-
-        AlertDialog(
-            onDismissRequest = { activeConfirmingPoint = null },
-            title = { Text("Log Code/Point Entry", fontSize = 16.sp, fontWeight = FontWeight.Bold) },
-            text = { Text(msg, color = if (!isWindowActive) Color(0xFFF59E0B) else Color.Unspecified) },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        viewModel.logPoint(pNum)
-                        activeConfirmingPoint = null
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981))
-                ) {
-                    Text("Log")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { activeConfirmingPoint = null }) {
-                    Text("Cancel")
-                }
-            }
-        )
-    }
-
-    // Modal Dialog 2: Alarm triggering state
-    if (alarmActive) {
-        Dialog(onDismissRequest = {}) {
             Card(
-                colors = CardDefaults.cardColors(containerColor = Color.White),
-                shape = RoundedCornerShape(24.dp),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                border = BorderStroke(2.dp, ThDangerText)
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = CardSurface),
+                border = BorderStroke(1.dp, BorderColor)
             ) {
-                Column(
-                    modifier = Modifier.padding(20.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Image(
-                        painter = painterResource(id = R.drawable.ic_launcher_foreground),
-                        contentDescription = "Patrol Tracker Logo Warning",
-                        modifier = Modifier
-                            .size(64.dp)
-                            .padding(bottom = 8.dp)
-                    )
-
+                Column(modifier = Modifier.padding(12.dp)) {
                     Text(
-                        text = "⚠️ Patrol Alert Warning",
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = ThDangerText
+                        "Stopwatch interval frequency for mandatory checkpoint scans:",
+                        fontSize = 11.sp,
+                        color = TextSecondary
                     )
+                    Spacer(modifier = Modifier.height(8.dp))
 
-                    Spacer(modifier = Modifier.height(12.dp))
+                    OutlinedTextField(
+                        value = intervalInput,
+                        onValueChange = { intervalInput = it },
+                        label = { Text("Frequency (in minutes)", fontSize = 11.sp) },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        singleLine = true,
+                        textStyle = LocalTextStyle.current.copy(fontSize = 12.sp),
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = CustomNeonCyan,
+                            unfocusedBorderColor = BorderColor,
+                            focusedTextColor = BrightWhite,
+                            unfocusedTextColor = BrightWhite
+                        )
+                    )
+                }
+            }
+        }
 
+        // Section C: Operating Shift Hour Range Slots
+        item {
+            Text(
+                text = "SHIFT TIME RANGE SLOTS",
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Black,
+                color = CustomNeonCyan,
+                modifier = Modifier.padding(bottom = 2.dp)
+            )
+
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = CardSurface),
+                border = BorderStroke(1.dp, BorderColor)
+            ) {
+                Column(modifier = Modifier.padding(12.dp)) {
                     Text(
-                        text = alarmMsg,
-                        fontSize = 14.sp,
-                        textAlign = TextAlign.Center,
-                        color = ThTextMain
+                        "Night cover hours range configurations (from 0 to 23 hours):",
+                        fontSize = 11.sp,
+                        color = TextSecondary
                     )
-
-                    Spacer(modifier = Modifier.height(20.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
 
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        Button(
-                            onClick = { viewModel.acceptAlarm() },
+                        OutlinedTextField(
+                            value = startHourInput,
+                            onValueChange = { startHourInput = it },
+                            label = { Text("Start (0-23)", fontSize = 11.sp) },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            singleLine = true,
+                            textStyle = LocalTextStyle.current.copy(fontSize = 12.sp),
                             modifier = Modifier.weight(1f),
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFEF4444)), // Diagnostic Red for Stop
-                            shape = RoundedCornerShape(12.dp)
-                        ) {
-                            Text("STOP ALARM", fontWeight = FontWeight.Bold, color = Color.White)
-                        }
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = CustomNeonCyan,
+                                unfocusedBorderColor = BorderColor,
+                                focusedTextColor = BrightWhite,
+                                unfocusedTextColor = BrightWhite
+                            )
+                        )
 
-                        Button(
-                            onClick = { viewModel.snoozeAlarm() },
+                        OutlinedTextField(
+                            value = endHourInput,
+                            onValueChange = { endHourInput = it },
+                            label = { Text("End (0-23)", fontSize = 11.sp) },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            singleLine = true,
+                            textStyle = LocalTextStyle.current.copy(fontSize = 12.sp),
                             modifier = Modifier.weight(1f),
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF59E0B)), // Amber for Snooze
-                            shape = RoundedCornerShape(12.dp)
-                        ) {
-                            Text("Snooze 5m", fontWeight = FontWeight.Bold, color = Color.White)
-                        }
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = CustomNeonCyan,
+                                unfocusedBorderColor = BorderColor,
+                                focusedTextColor = BrightWhite,
+                                unfocusedTextColor = BrightWhite
+                            )
+                        )
                     }
                 }
             }
         }
-    }
 
-    // Modal Dialog 3: Monthly Report popup View
-    monthlyReport?.let { report ->
-        Dialog(onDismissRequest = { viewModel.closeMonthlyReport() }) {
+        // Section D: Direct Dispatch SOS Emergency Phone Config
+        item {
+            Text(
+                text = "EMERGENCY HOTLINE SETUP",
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Black,
+                color = CustomNeonCyan,
+                modifier = Modifier.padding(bottom = 2.dp)
+            )
+
             Card(
-                colors = CardDefaults.cardColors(containerColor = Color.White),
-                shape = RoundedCornerShape(24.dp),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(12.dp)
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = CardSurface),
+                border = BorderStroke(1.dp, BorderColor)
             ) {
-                Column(modifier = Modifier.padding(16.dp)) {
+                Column(modifier = Modifier.padding(12.dp)) {
                     Text(
-                        text = "📊 Monthly Patrol Report",
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = ThPurpleBrand,
-                        modifier = Modifier.padding(bottom = 12.dp)
+                        "Specify target phone number that is dialled upon initiating Panic / SOS alarms:",
+                        fontSize = 11.sp,
+                        color = TextSecondary
                     )
+                    Spacer(modifier = Modifier.height(8.dp))
 
-                    StatLineItem("Month:", report.month)
-                    StatLineItem("Total patrol entries:", report.totalEntries.toString())
-                    StatLineItem("Total active hours:", "${report.totalHours} hrs")
-                    StatLineItem("Total missed points:", report.totalMisses.toString())
-                    StatLineItem("Violations (gaps >65m):", report.violations.toString(), isHighlight = report.violations > 0)
-                    StatLineItem("Best day (max active hrs):", "${report.bestDay} (${report.bestDayHours} hrs)")
-                    StatLineItem("Slowest day (min active hrs):", "${report.worstDay} (${report.worstDayHours} hrs)")
+                    OutlinedTextField(
+                        value = emergencyContactInput,
+                        onValueChange = { emergencyContactInput = it },
+                        label = { Text("Direct hotline phone", fontSize = 11.sp) },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+                        singleLine = true,
+                        textStyle = LocalTextStyle.current.copy(fontSize = 12.sp),
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = CustomNeonCyan,
+                            unfocusedBorderColor = BorderColor,
+                            focusedTextColor = BrightWhite,
+                            unfocusedTextColor = BrightWhite
+                        )
+                    )
+                }
+            }
+        }
 
-                    Spacer(modifier = Modifier.height(18.dp))
+        // Section E: Compliance Alarm Sound Level
+        item {
+            Text(
+                text = "ALARM SYSTEM VOLUME LEVEL",
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Black,
+                color = CustomNeonCyan,
+                modifier = Modifier.padding(bottom = 2.dp)
+            )
+
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = CardSurface),
+                border = BorderStroke(1.dp, BorderColor)
+            ) {
+                Column(modifier = Modifier.padding(12.dp)) {
+                    Text(
+                        text = "Fine-tune the decibel level of missed check-in notifications (set to ${(alarmVolumeInput * 100).toInt()}%):",
+                        fontSize = 11.sp,
+                        color = TextSecondary
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
 
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Button(
-                            onClick = {
-                                val literal = "Monthly Patrol Report\n" +
-                                        "Month,\"${report.month}\"\n" +
-                                        "Total Entries,\"${report.totalEntries}\"\n" +
-                                        "Total Hours Active,\"${report.totalHours}\"\n" +
-                                        "Total Missed Points,\"${report.totalMisses}\"\n" +
-                                        "Violations,\"${report.violations}\"\n" +
-                                        "Best Day,\"${report.bestDay} (${report.bestDayHours} hrs)\"\n" +
-                                        "Slowest Day,\"${report.worstDay} (${report.worstDayHours} hrs)\"\n"
-
-                                val filename = "monthly_report_${report.month.replace(" ", "_").lowercase()}.csv"
-                                shareFile(context, filename, literal, "text/csv")
-                            },
-                            modifier = Modifier.weight(1.3f),
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981)),
-                            shape = RoundedCornerShape(12.dp)
-                        ) {
-                            Text("Share CSV", fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                        }
-
-                        Button(
-                            onClick = { viewModel.closeMonthlyReport() },
+                        Text(
+                            text = "🔈 Min",
+                            fontSize = 11.sp,
+                            color = TextSecondary
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Slider(
+                            value = alarmVolumeInput,
+                            onValueChange = { alarmVolumeInput = it },
+                            valueRange = 0f..1f,
                             modifier = Modifier.weight(1f),
-                            colors = ButtonDefaults.buttonColors(containerColor = ThTextSecondary),
-                            shape = RoundedCornerShape(12.dp)
-                        ) {
-                            Text("Close", fontSize = 11.sp, color = Color.White)
-                        }
+                            colors = SliderDefaults.colors(
+                                thumbColor = CustomNeonCyan,
+                                activeTrackColor = CustomNeonCyan,
+                                inactiveTrackColor = BorderColor
+                            )
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "🔊 Max",
+                            fontSize = 11.sp,
+                            color = TextSecondary
+                        )
                     }
                 }
             }
         }
-    }
-}
 
-// Map Helper logic (used for UI state parsing)
-private fun _addEntryToMap(
-    map: MutableMap<String, MutableMap<Int, MutableList<PatrolEntry>>>,
-    e: PatrolEntry
-) {
-    val dateLabel = e.date
-    val itemCal = Calendar.getInstance().apply { timeInMillis = e.timestamp }
-    val hour = itemCal.get(Calendar.HOUR_OF_DAY)
+        // Action: Save configuration parameters
+        item {
+            Button(
+                onClick = {
+                    val intVal = intervalInput.toIntOrNull() ?: 15
+                    val sHr = startHourInput.toIntOrNull() ?: 20
+                    val eHr = endHourInput.toIntOrNull() ?: 6
 
-    val dateHourMap = map.getOrPut(dateLabel) { mutableMapOf() }
-    val hourList = dateHourMap.getOrPut(hour) { mutableListOf() }
-    hourList.add(e)
-}
+                    if (sHr !in 0..23 || eHr !in 0..23) {
+                        Toast.makeText(viewModel.getApplication(), "Error: Time values must range between 0 and 23!", Toast.LENGTH_SHORT).show()
+                        return@Button
+                    }
 
-// FlowRow layout component for side-by-side maintenance action grids
-@Composable
-fun FlowRowLayout(
-    modifier: Modifier = Modifier,
-    spacing: androidx.compose.ui.unit.Dp = 6.dp,
-    content: List<@Composable () -> Unit>
-) {
-    Column(modifier = modifier.fillMaxWidth()) {
-        val pairs = content.chunked(2)
-        pairs.forEach { pair ->
-            Row(
+                    viewModel.prefs.patrolInterval = intVal
+                    viewModel.prefs.startHour = sHr
+                    viewModel.prefs.endHour = eHr
+                    viewModel.prefs.emergencyNumber = emergencyContactInput
+                    viewModel.prefs.alarmVolume = (alarmVolumeInput * 100f).toInt()
+
+                    viewModel.loadEntries() // recalculate stats based on new settings
+                    Toast.makeText(viewModel.getApplication(), "System settings saved securely!", Toast.LENGTH_SHORT).show()
+                },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = spacing / 2),
-                horizontalArrangement = Arrangement.spacedBy(spacing)
+                    .height(44.dp)
+                    .testTag("save_settings_button"),
+                colors = ButtonDefaults.buttonColors(containerColor = CustomNeonCyan)
             ) {
-                pair.forEach { item ->
-                    Box(modifier = Modifier.weight(1f)) {
-                        item()
-                    }
-                }
-                if (pair.size < 2) {
-                    Spacer(modifier = Modifier.weight(1f))
-                }
+                Text(
+                    text = "SAVE CONFIGURATION",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Black,
+                    color = ScreenBackground
+                )
+            }
+        }
+
+        // Logo Footer at bottom of Settings screen
+        item {
+            Spacer(modifier = Modifier.height(6.dp))
+            Divider(color = BorderColor, thickness = 1.dp)
+            Spacer(modifier = Modifier.height(10.dp))
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Image(
+                    painter = painterResource(id = R.drawable.logo_patrologger),
+                    contentDescription = "Patrologger logo",
+                    modifier = Modifier
+                        .size(44.dp)
+                        .clip(RoundedCornerShape(6.dp))
+                )
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(
+                    text = "EAGLEEYE TECHNICAL SOLUTIONS",
+                    color = TextSecondary,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "eagleeyetechsolu@gmail.com",
+                    color = CustomNeonCyan,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = "Direct Hotline: ${viewModel.prefs.emergencyNumber}",
+                    color = CustomNeonCyan,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "© 2026 EagleEye Technical Solutions | Ver 2.5",
+                    color = TextSecondary,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Medium
+                )
             }
         }
     }
 }
 
+// FlowRow layout helper for simple, non-deprecated responsive inline layouts
 @Composable
-fun StatLineItem(label: String, value: String, isHighlight: Boolean = false) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp),
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
-        Text(text = label, fontSize = 12.sp, color = ThTextSecondary)
-        Text(
-            text = value,
-            fontSize = 12.sp,
-            fontWeight = FontWeight.Bold,
-            color = if (isHighlight) ThDangerText else ThPurpleBrand
-        )
-    }
-}
-
-fun shareFile(context: Context, filename: String, content: String, mimeType: String) {
-    try {
-        val cacheFile = java.io.File(context.cacheDir, filename)
-        cacheFile.writeText(content)
-        val fileUri: Uri = androidx.core.content.FileProvider.getUriForFile(
-            context,
-            "${context.packageName}.fileprovider",
-            cacheFile
-        )
-        val intent = Intent(Intent.ACTION_SEND).apply {
-            type = mimeType
-            putExtra(Intent.EXTRA_STREAM, fileUri)
-            putExtra(Intent.EXTRA_SUBJECT, filename)
-            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+fun FlowRow(
+    modifier: Modifier = Modifier,
+    horizontalArrangement: Arrangement.Horizontal = Arrangement.Start,
+    activityTab: () -> Unit,
+    content: @Composable () -> Unit
+) {
+    Box(modifier = modifier) {
+        androidx.compose.foundation.layout.Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = horizontalArrangement,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            content()
         }
-        context.startActivity(Intent.createChooser(intent, "Export $filename"))
-    } catch (e: Exception) {
-        Toast.makeText(context, "Error exporting file: ${e.message}", Toast.LENGTH_LONG).show()
     }
 }

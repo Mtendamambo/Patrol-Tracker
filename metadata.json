@@ -1,5 +1,5 @@
 {
-  "name": "Patrol Tracker",
+  "name": "Patrologger",
   "description": "An offline patrol tracker for security and guard management, with local logging and emergency panic features.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
